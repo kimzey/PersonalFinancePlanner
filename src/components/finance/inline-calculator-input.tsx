@@ -36,17 +36,19 @@ export function InlineCalculatorInput({
           text: formatInputValue(value, precision),
         };
 
-  function commitValue() {
+  function parseDraftValue(text: string, showError: boolean) {
     try {
-      const parsedValue = Math.max(0, parseCalculatorInput(currentDraft.text));
+      const parsedValue = Math.max(0, parseCalculatorInput(text));
       setError("");
       setDraft({
         sourceValue: parsedValue,
-        text: formatInputValue(parsedValue, precision),
+        text: showError ? formatInputValue(parsedValue, precision) : text,
       });
       onValueChange(parsedValue);
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "สูตรไม่ถูกต้อง");
+      if (showError) {
+        setError(currentError instanceof Error ? currentError.message : "สูตรไม่ถูกต้อง");
+      }
     }
   }
 
@@ -58,15 +60,17 @@ export function InlineCalculatorInput({
         className={cn(error && "border-[var(--destructive)]", className)}
         inputMode="decimal"
         onBlur={(event) => {
-          commitValue();
+          parseDraftValue(currentDraft.text, true);
           onBlur?.(event);
         }}
         onChange={(event) => {
+          const nextText = event.target.value;
           setDraft({
             sourceValue: value,
-            text: event.target.value,
+            text: nextText,
           });
           if (error) setError("");
+          parseDraftValue(nextText, false);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {

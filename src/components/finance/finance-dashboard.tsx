@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   BarChart3,
+  Calculator,
   Download,
   Landmark,
   LineChart,
@@ -31,6 +32,7 @@ import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SettingsPanel } from "@/components/finance/settings-panel";
 import { SummaryCards } from "@/components/finance/summary-cards";
+import { TaxCalculator } from "@/components/finance/tax-calculator";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
 import {
   calculateAllocationTotals,
@@ -56,6 +58,7 @@ type DashboardSection =
   | "goals"
   | "debts"
   | "expenses"
+  | "tax"
   | "settings";
 
 const dashboardSections: {
@@ -71,6 +74,7 @@ const dashboardSections: {
   { id: "goals", label: "Goals", icon: Target },
   { id: "debts", label: "Debt", icon: Landmark },
   { id: "expenses", label: "Expenses", icon: ReceiptText },
+  { id: "tax", label: "Tax", icon: Calculator },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -400,6 +404,10 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
 
           {activeSection === "expenses" ? (
             <ExpenseTracker allocations={normalizedAllocations} />
+          ) : null}
+
+          {activeSection === "tax" ? (
+            <TaxCalculator initialMonthlyIncome={netIncome} />
           ) : null}
 
           {activeSection === "settings" ? (
