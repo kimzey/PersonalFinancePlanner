@@ -9,12 +9,22 @@ type Theme = "light" | "dark";
 const storageKey = "personal-finance-planner-theme";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
+  const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
+    queueMicrotask(() => {
+      setTheme(getInitialTheme());
+      setMounted(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(storageKey, theme);
-  }, [theme]);
+  }, [mounted, theme]);
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
