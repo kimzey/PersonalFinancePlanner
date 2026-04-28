@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, RotateCcw, Scale, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ClipboardList, Plus, RotateCcw, Scale, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,8 @@ import {
   categorySuggestions,
   CategorySuggestions,
 } from "@/components/finance/category-suggestions";
+import { BulkPasteDialog } from "@/components/finance/bulk-paste-dialog";
+import { InlineCalculatorInput } from "@/components/finance/inline-calculator-input";
 import {
   amountToPercent,
   calculateAllocationTotals,
@@ -50,6 +53,7 @@ export function AllocationEditor({
   onAllocationsChange,
   onReset,
 }: AllocationEditorProps) {
+  const [bulkPasteOpen, setBulkPasteOpen] = useState(false);
   const totals = calculateAllocationTotals(allocations);
   const remaining = calculateRemainingIncome(netIncome, totals.amount);
   const isOverIncome = remaining < 0;
@@ -141,6 +145,15 @@ export function AllocationEditor({
     );
   }
 
+  function applyBulkAllocations(
+    nextAllocations: AllocationCategory[],
+    mode: "append" | "replace",
+  ) {
+    onAllocationsChange(
+      mode === "replace" ? nextAllocations : [...allocations, ...nextAllocations],
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="gap-4">
@@ -150,6 +163,15 @@ export function AllocationEditor({
             <Button onClick={addAllocation} size="sm" type="button">
               <Plus className="h-4 w-4" aria-hidden="true" />
               เพิ่มหมวด
+            </Button>
+            <Button
+              onClick={() => setBulkPasteOpen(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <ClipboardList className="h-4 w-4" aria-hidden="true" />
+              Bulk paste
             </Button>
             <Button onClick={autoBalance} size="sm" type="button" variant="outline">
               <Scale className="h-4 w-4" aria-hidden="true" />
@@ -163,12 +185,10 @@ export function AllocationEditor({
         </div>
         <div className="grid gap-2 sm:max-w-xs">
           <Label htmlFor="net-income">Net Income</Label>
-          <Input
+          <InlineCalculatorInput
             id="net-income"
-            inputMode="decimal"
             min={0}
-            onChange={(event) => handleNetIncomeChange(Number(event.target.value))}
-            type="number"
+            onValueChange={handleNetIncomeChange}
             value={netIncome}
           />
         </div>
@@ -246,18 +266,12 @@ export function AllocationEditor({
                 <Label className="lg:hidden" htmlFor={`${category.id}-value`}>
                   ค่าที่กรอก
                 </Label>
-                <Input
+                <InlineCalculatorInput
                   id={`${category.id}-value`}
-                  inputMode="decimal"
                   min={0}
-                  onChange={(event) =>
-                    updateAllocationValue(
-                      category,
-                      Number(event.target.value),
-                      category.mode,
-                    )
+                  onValueChange={(value) =>
+                    updateAllocationValue(category, value, category.mode)
                   }
-                  type="number"
                   value={
                     category.mode === "amount"
                       ? roundInput(category.amount)
@@ -302,6 +316,13 @@ export function AllocationEditor({
             </div>
           ))}
         </div>
+
+        <BulkPasteDialog
+          netIncome={netIncome}
+          onApply={applyBulkAllocations}
+          onOpenChange={setBulkPasteOpen}
+          open={bulkPasteOpen}
+        />
       </CardContent>
     </Card>
   );

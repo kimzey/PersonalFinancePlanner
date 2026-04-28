@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AllocationEditor } from "@/components/finance/allocation-editor";
+import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { SummaryCards } from "@/components/finance/summary-cards";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
 import {
@@ -79,8 +80,14 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(defaultPlan.investmentScenarios[0]);
   }
 
+  function applyPlan(nextPlan: FinancialPlan) {
+    setNetIncome(nextPlan.profile.netIncome);
+    setAllocations(nextPlan.allocations);
+    setInvestmentScenario(nextPlan.investmentScenarios[0]);
+  }
+
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-20 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold text-[var(--foreground)] sm:text-3xl">
@@ -92,11 +99,13 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 5 Investment Simulator
+            Phase 6 Guided Input UX
           </Badge>
           <ThemeToggle />
         </div>
       </header>
+
+      <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
 
       <SummaryCards netIncome={netIncome} remaining={remaining} totals={totals} />
 
@@ -128,6 +137,29 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         onNetIncomeChange={handleNetIncomeChange}
         onReset={resetDefaultPlan}
       />
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)] px-4 py-3 shadow-lg md:hidden">
+        <div className="mx-auto grid max-w-7xl grid-cols-3 gap-2 text-sm">
+          <div>
+            <p className="text-xs text-[var(--muted-foreground)]">รายได้</p>
+            <p className="font-semibold">{formatCurrency(netIncome)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--muted-foreground)]">จัดสรร</p>
+            <p className="font-semibold">{formatPercent(totals.percent)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--muted-foreground)]">เหลือ</p>
+            <p
+              className={`font-semibold ${
+                isOverIncome ? "text-[var(--destructive)]" : "text-[var(--foreground)]"
+              }`}
+            >
+              {formatCurrency(remaining)}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
