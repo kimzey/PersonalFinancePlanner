@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { ScenarioComparisonTable } from "@/components/finance/scenario-comparison-table";
 import {
+  calculateDividendIncomePlan,
   calculateScheduledDcaFutureValue,
   calculateScheduledTotalContribution,
   calculateScheduledYearlyInvestmentProjection,
@@ -78,6 +79,8 @@ export function InvestmentSimulator({
     initialScenario.annualReturnPercent,
   );
   const [years, setYears] = useState(initialScenario.years);
+  const [annualDividendYieldPercent, setAnnualDividendYieldPercent] = useState(4);
+  const [withholdingTaxPercent, setWithholdingTaxPercent] = useState(10);
 
   const safeInitialAmount = Math.max(0, initialAmount);
   const safeContributionSteps = normalizeContributionSteps(
@@ -110,6 +113,11 @@ export function InvestmentSimulator({
     safeContributionSteps,
     safeYears,
   );
+  const dividendPlan = calculateDividendIncomePlan({
+    portfolioValue: futureValue,
+    annualDividendYieldPercent,
+    withholdingTaxPercent,
+  });
 
   function resetScenario() {
     setInitialAmount(initialScenario.initialAmount);
@@ -291,6 +299,13 @@ export function InvestmentSimulator({
           </div>
         </div>
 
+        <DividendIncomePlanner
+          dividendPlan={dividendPlan}
+          finalMonthlyContribution={finalMonthlyContribution}
+          onAnnualDividendYieldPercentChange={setAnnualDividendYieldPercent}
+          onWithholdingTaxPercentChange={setWithholdingTaxPercent}
+        />
+
         <div className="grid gap-5 xl:grid-cols-2">
           <section className="grid gap-3">
             <div>
@@ -333,6 +348,103 @@ export function InvestmentSimulator({
   );
 }
 
+function DividendIncomePlanner({
+  dividendPlan,
+  finalMonthlyContribution,
+  onAnnualDividendYieldPercentChange,
+  onWithholdingTaxPercentChange,
+}: {
+  dividendPlan: ReturnType<typeof calculateDividendIncomePlan>;
+  finalMonthlyContribution: number;
+  onAnnualDividendYieldPercentChange: (value: number) => void;
+  onWithholdingTaxPercentChange: (value: number) => void;
+}) {
+  const coveragePercent =
+    finalMonthlyContribution > 0
+      ? (dividendPlan.netMonthlyDividend / finalMonthlyContribution) * 100
+      : 0;
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-[var(--border)] p-4">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-base font-semibold">Dividend income after DCA</h3>
+        <p className="text-sm text-[var(--muted-foreground)]">
+          ใช้มูลค่าอนาคตปลายแผนเป็นเงินต้น แล้วจำลองเปลี่ยนเป็นพอร์ตปันผล
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(16rem,0.65fr)_1fr]">
+        <div className="grid gap-4">
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="dividend-yield">Dividend yield ต่อปี</Label>
+              <span className="text-sm font-medium">
+                {formatPercent(dividendPlan.annualDividendYieldPercent, 1)}
+              </span>
+            </div>
+            <Slider
+              id="dividend-yield"
+              max={12}
+              min={0}
+              onChange={(event) =>
+                onAnnualDividendYieldPercentChange(Math.max(0, Number(event.target.value)))
+              }
+              step={0.25}
+              value={dividendPlan.annualDividendYieldPercent}
+            />
+          </div>
+
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="withholding-tax">ภาษีหัก ณ ที่จ่าย</Label>
+              <span className="text-sm font-medium">
+                {formatPercent(dividendPlan.withholdingTaxPercent, 1)}
+              </span>
+            </div>
+            <Slider
+              id="withholding-tax"
+              max={20}
+              min={0}
+              onChange={(event) =>
+                onWithholdingTaxPercentChange(
+                  Math.min(100, Math.max(0, Number(event.target.value))),
+                )
+              }
+              step={0.5}
+              value={dividendPlan.withholdingTaxPercent}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="ปันผล/เดือน หลังภาษี"
+            value={formatCurrency(dividendPlan.netMonthlyDividend)}
+          />
+          <MetricCard
+            label="ปันผล/เดือน ก่อนภาษี"
+            value={formatCurrency(dividendPlan.grossMonthlyDividend)}
+          />
+          <MetricCard
+            label="ปันผล/ปี หลังภาษี"
+            value={formatCurrency(dividendPlan.netAnnualDividend)}
+          />
+          <MetricCard
+            label="เทียบ DCA เดือนท้าย"
+            value={`${formatNumber(coveragePercent)}%`}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+        พอร์ตปลายแผน {formatCurrency(dividendPlan.portfolioValue)} ที่ yield{" "}
+        {formatPercent(dividendPlan.annualDividendYieldPercent, 1)} จะให้ปันผลหลังภาษีประมาณ{" "}
+        {formatCurrency(dividendPlan.netMonthlyDividend)} ต่อเดือน
+      </div>
+    </section>
+  );
+}
+
 function ContributionScheduleEditor({
   contributionSteps,
   onContributionStepsChange,
@@ -364,16 +476,19 @@ function ContributionScheduleEditor({
     stepId: string,
     patch: Partial<Pick<DraftContributionStep, "startMonth" | "monthlyContribution">>,
   ) {
-    setDraftSteps((currentSteps) =>
-      currentSteps.map((step) =>
+    setDraftSteps((currentSteps) => {
+      const nextDraftSteps = currentSteps.map((step) =>
         step.id === stepId
           ? {
               ...step,
               ...patch,
             }
           : step,
-      ),
-    );
+      );
+
+      onContributionStepsChange(toContributionSteps(nextDraftSteps, contributionSteps));
+      return nextDraftSteps;
+    });
   }
 
   function applyDraftSteps() {
@@ -479,7 +594,7 @@ function ContributionScheduleEditor({
           Add DCA step
         </Button>
         <Button onClick={applyDraftSteps} type="button" variant="secondary">
-          Apply DCA schedule
+          Clean up schedule
         </Button>
       </div>
     </div>

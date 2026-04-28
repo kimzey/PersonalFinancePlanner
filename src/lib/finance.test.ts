@@ -6,6 +6,7 @@ import {
   calculateDcaFutureValue,
   calculateEmergencyFundPlan,
   calculateRemainingIncome,
+  calculateDividendIncomePlan,
   calculateScheduledDcaFutureValue,
   calculateScheduledTotalContribution,
   calculateScheduledYearlyInvestmentProjection,
@@ -145,6 +146,19 @@ describe("finance calculations", () => {
       { id: "start", startMonth: 1, monthlyContribution: 8_000 },
       { id: "month-24", startMonth: 24, monthlyContribution: 15_000 },
     ]);
+  });
+
+  it("calculates dividend income from a final portfolio value", () => {
+    const dividendPlan = calculateDividendIncomePlan({
+      portfolioValue: 10_000_000,
+      annualDividendYieldPercent: 4,
+      withholdingTaxPercent: 10,
+    });
+
+    expect(dividendPlan.grossAnnualDividend).toBe(400_000);
+    expect(dividendPlan.grossMonthlyDividend).toBeCloseTo(33_333.33, 2);
+    expect(dividendPlan.taxAmount).toBe(40_000);
+    expect(dividendPlan.netMonthlyDividend).toBe(30_000);
   });
 
   it("validates allocation plan status", () => {
