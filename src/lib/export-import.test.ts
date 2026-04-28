@@ -5,6 +5,7 @@ import {
   getExportFileName,
   mergeImportedPlan,
   serializeExportData,
+  toFinancialPlan,
 } from "@/lib/export-import";
 import { validateImportJson } from "@/lib/import-validation";
 
@@ -62,6 +63,66 @@ describe("export/import", () => {
     expect(merged.allocations.length).toBeGreaterThan(currentPlan.allocations.length);
 
     vi.useRealTimers();
+  });
+
+  it("imports exported JSON with metadata and extra settings fields as a plan", () => {
+    const exportedText = JSON.stringify({
+      metadata: {
+        appName: "Personal Finance Planner",
+        appVersion: "1.0.0",
+        schemaVersion: 1,
+        exportedAt: "2026-04-28T16:33:27.953Z",
+        currency: "THB",
+        locale: "th-TH",
+      },
+      profile: {
+        netIncome: 38425,
+      },
+      allocations: [
+        {
+          id: "family-support",
+          name: "ให้ครอบครัว + ค่าเทอมน้อง",
+          amount: 12000,
+          mode: "amount",
+          note: "รวมภาระค่าเทอมน้องเรียบร้อย",
+          color: "#2563eb",
+          kind: "family",
+          locked: true,
+          percent: 31.229668184775537,
+        },
+      ],
+      investmentScenarios: [
+        {
+          id: "dca-current",
+          name: "DCA ปัจจุบัน",
+          initialAmount: 0,
+          monthlyContribution: 8000,
+          annualReturnPercent: 8,
+          years: 20,
+        },
+      ],
+      goals: [],
+      debts: [],
+      expenses: [],
+      monthlyReviews: [],
+      settings: {
+        currency: "THB",
+        locale: "th-TH",
+        anonymized: false,
+        exportedWithNotes: true,
+        exportedWithActualExpenses: false,
+      },
+    });
+
+    const result = validateImportJson(exportedText);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const plan = toFinancialPlan(result.data);
+    expect(plan.profile.netIncome).toBe(38425);
+    expect(plan.allocations[0].id).toBe("family-support");
+    expect(plan.settings).toEqual({ currency: "THB", locale: "th-TH" });
   });
 
   it("creates readable export file names", () => {

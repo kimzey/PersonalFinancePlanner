@@ -122,11 +122,14 @@ export function toFinancialPlan(data: ExportedFinanceData): FinancialPlan {
       : createDefaultPlan(data.profile.netIncome).investmentScenarios,
     goals: data.goals,
     debts: data.debts,
-    settings: {
-      currency: "THB",
-      locale: "th-TH",
-      ...data.settings,
-    },
+    settings: toPlanSettings(data.settings),
+  };
+}
+
+function toPlanSettings(settings: Record<string, unknown>): FinancialPlan["settings"] {
+  return {
+    currency: settings.currency === "THB" ? settings.currency : "THB",
+    locale: settings.locale === "th-TH" ? settings.locale : "th-TH",
   };
 }
 

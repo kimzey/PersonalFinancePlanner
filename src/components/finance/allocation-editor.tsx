@@ -1,10 +1,28 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { ClipboardList, Plus, RotateCcw, Scale, Trash2 } from "lucide-react";
+import {
+  ClipboardList,
+  Lock,
+  Plus,
+  RotateCcw,
+  Scale,
+  Sparkles,
+  Trash2,
+  Unlock,
+  WalletCards,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -57,6 +75,8 @@ export function AllocationEditor({
   const totals = calculateAllocationTotals(allocations);
   const remaining = calculateRemainingIncome(netIncome, totals.amount);
   const isOverIncome = remaining < 0;
+  const remainingPercent = netIncome > 0 ? (remaining / netIncome) * 100 : 0;
+  const usedPercent = Math.min(100, Math.max(0, totals.percent));
 
   function updateAllocation(id: string, patch: Partial<AllocationCategory>) {
     onAllocationsChange(
@@ -155,11 +175,32 @@ export function AllocationEditor({
   }
 
   return (
-    <Card>
-      <CardHeader className="gap-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <CardTitle>จัดสรรเงินรายเดือน</CardTitle>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+    <Card className="overflow-hidden">
+      <CardHeader className="gap-5 border-b border-[var(--border)] bg-[linear-gradient(135deg,var(--card)_0%,var(--muted)_100%)]">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="grid gap-3">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
+                <WalletCards className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <CardTitle>Budget Planner</CardTitle>
+                <CardDescription>
+                  ปรับงบรายเดือนแบบเห็นภาพรวมทันที ใช้บาทหรือเปอร์เซ็นต์ได้ในแต่ละหมวด
+                </CardDescription>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:max-w-sm">
+              <Label htmlFor="net-income">Net Income</Label>
+              <InlineCalculatorInput
+                id="net-income"
+                min={0}
+                onValueChange={handleNetIncomeChange}
+                value={netIncome}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap xl:justify-end">
             <Button onClick={addAllocation} size="sm" type="button">
               <Plus className="h-4 w-4" aria-hidden="true" />
               เพิ่มหมวด
@@ -174,7 +215,7 @@ export function AllocationEditor({
               Bulk paste
             </Button>
             <Button onClick={autoBalance} size="sm" type="button" variant="outline">
-              <Scale className="h-4 w-4" aria-hidden="true" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               Auto-balance
             </Button>
             <Button onClick={onReset} size="sm" type="button" variant="secondary">
@@ -183,17 +224,38 @@ export function AllocationEditor({
             </Button>
           </div>
         </div>
-        <div className="grid gap-2 sm:max-w-xs">
-          <Label htmlFor="net-income">Net Income</Label>
-          <InlineCalculatorInput
-            id="net-income"
-            min={0}
-            onValueChange={handleNetIncomeChange}
-            value={netIncome}
-          />
+
+        <div className="grid gap-3 lg:grid-cols-[1.1fr_1fr] lg:items-end">
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-[var(--muted-foreground)]">จัดสรรไปแล้ว</span>
+              <span className="font-semibold text-[var(--foreground)]">
+                {formatPercent(totals.percent)}
+              </span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-[var(--card)] shadow-inner">
+              <motion.div
+                animate={{ width: `${usedPercent}%` }}
+                className={`h-full rounded-full ${
+                  isOverIncome ? "bg-[var(--destructive)]" : "bg-[var(--primary)]"
+                }`}
+                initial={false}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <BudgetMetric label="รายได้" value={formatCurrency(netIncome)} />
+            <BudgetMetric label="จัดสรร" value={formatCurrency(totals.amount)} />
+            <BudgetMetric
+              danger={isOverIncome}
+              label={isOverIncome ? "เกินงบ" : "คงเหลือ"}
+              value={formatCurrency(Math.abs(remaining))}
+            />
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-5 p-5">
         <CategorySuggestions />
 
         <Alert variant={isOverIncome ? "destructive" : "default"}>
@@ -207,20 +269,15 @@ export function AllocationEditor({
           </AlertDescription>
         </Alert>
 
-        <div className="hidden grid-cols-[minmax(12rem,1.5fr)_8rem_9rem_minmax(6rem,0.8fr)_5rem_4rem] gap-3 px-1 text-xs font-medium text-[var(--muted-foreground)] xl:grid">
-          <span>หมวดหมู่</span>
-          <span>โหมด</span>
-          <span>ค่าที่กรอก</span>
-          <span>บาท</span>
-          <span>%</span>
-          <span />
-        </div>
-
         <div className="flex flex-col gap-3">
           {allocations.map((category, index) => (
-            <div
-              className="grid min-w-0 gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 xl:grid-cols-[minmax(12rem,1.5fr)_8rem_9rem_minmax(6rem,0.8fr)_5rem_4rem] xl:items-center"
+            <motion.div
+              animate={{ opacity: 1, y: 0 }}
+              className="grid min-w-0 gap-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm transition-colors hover:border-[var(--primary)]/60 xl:grid-cols-[minmax(14rem,1.5fr)_8rem_10rem_minmax(9rem,0.9fr)_7rem_5rem] xl:items-center"
+              initial={{ opacity: 0, y: 8 }}
               key={category.id}
+              layout
+              transition={{ duration: 0.18, ease: "easeOut" }}
             >
               <div className="grid gap-2">
                 <Label className="xl:hidden" htmlFor={`${category.id}-name`}>
@@ -228,7 +285,7 @@ export function AllocationEditor({
                 </Label>
                 <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full"
+                    className="h-4 w-4 shrink-0 rounded-full shadow-sm ring-2 ring-[var(--card)]"
                     style={{
                       backgroundColor:
                         category.color ?? fallbackColors[index % fallbackColors.length],
@@ -280,17 +337,31 @@ export function AllocationEditor({
                 />
               </div>
 
-              <div className="text-sm font-medium text-[var(--foreground)]">
-                <span className="mr-2 text-xs text-[var(--muted-foreground)] xl:hidden">
-                  บาท
+              <div className="grid gap-1">
+                <span className="text-xs text-[var(--muted-foreground)]">บาท</span>
+                <span className="text-sm font-semibold text-[var(--foreground)]">
+                  {formatCurrency(category.amount)}
                 </span>
-                {formatCurrency(category.amount)}
               </div>
-              <div className="text-sm text-[var(--muted-foreground)]">
-                <span className="mr-2 text-xs text-[var(--muted-foreground)] xl:hidden">
-                  %
-                </span>
-                {formatPercent(category.percent)}
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[var(--muted-foreground)]">สัดส่วน</span>
+                  <Badge className="bg-[var(--muted)] text-[var(--muted-foreground)]">
+                    {formatPercent(category.percent)}
+                  </Badge>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
+                  <motion.div
+                    animate={{ width: `${Math.min(100, Math.max(0, category.percent))}%` }}
+                    className="h-full rounded-full"
+                    initial={false}
+                    style={{
+                      backgroundColor:
+                        category.color ?? fallbackColors[index % fallbackColors.length],
+                    }}
+                    transition={{ duration: 0.24, ease: "easeOut" }}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-2 xl:justify-end">
@@ -301,7 +372,11 @@ export function AllocationEditor({
                       updateAllocation(category.id, { locked: event.target.checked })
                     }
                   />
-                  Lock
+                  {category.locked ? (
+                    <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <Unlock className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
                 </label>
                 <Button
                   aria-label={`ลบ ${category.name}`}
@@ -313,8 +388,16 @@ export function AllocationEditor({
                   <Trash2 className="h-4 w-4 text-[var(--destructive)]" aria-hidden="true" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           ))}
+        </div>
+
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">
+          <Scale className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            Auto-balance จะกระจายเงินที่เหลือให้หมวดที่ไม่ได้ล็อก โดยยังรักษาหมวดที่ล็อกไว้เหมือนเดิม
+            {remainingPercent > 0 ? ` ตอนนี้เหลือ ${formatPercent(remainingPercent)}` : ""}
+          </span>
         </div>
 
         <BulkPasteDialog
@@ -325,6 +408,29 @@ export function AllocationEditor({
         />
       </CardContent>
     </Card>
+  );
+}
+
+function BudgetMetric({
+  danger = false,
+  label,
+  value,
+}: {
+  danger?: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3">
+      <div className="text-xs text-[var(--muted-foreground)]">{label}</div>
+      <div
+        className={`mt-1 text-sm font-semibold ${
+          danger ? "text-[var(--destructive)]" : "text-[var(--foreground)]"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 

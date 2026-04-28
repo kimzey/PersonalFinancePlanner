@@ -12,6 +12,7 @@ import {
   ReceiptText,
   RotateCcw,
   Save,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Target,
@@ -28,6 +29,7 @@ import { ExpenseTracker } from "@/components/finance/expense-tracker";
 import { FinancialGoals } from "@/components/finance/financial-goals";
 import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
+import { SettingsPanel } from "@/components/finance/settings-panel";
 import { SummaryCards } from "@/components/finance/summary-cards";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
 import {
@@ -53,7 +55,8 @@ type DashboardSection =
   | "scenarios"
   | "goals"
   | "debts"
-  | "expenses";
+  | "expenses"
+  | "settings";
 
 const dashboardSections: {
   id: DashboardSection;
@@ -68,6 +71,7 @@ const dashboardSections: {
   { id: "goals", label: "Goals", icon: Target },
   { id: "debts", label: "Debt", icon: Landmark },
   { id: "expenses", label: "Expenses", icon: ReceiptText },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const AllocationChart = dynamic(
@@ -106,10 +110,12 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [importedScenarios, setImportedScenarios] = useState<ScenarioPlan[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [simulatorRevision, setSimulatorRevision] = useState(0);
   const [goals, setGoals] = useState(initialPlan.goals);
   const [debts, setDebts] = useState(initialPlan.debts);
+  const [settings, setSettings] = useState(initialPlan.settings);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const shouldReduceMotion = useReducedMotion();
 
@@ -139,6 +145,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(defaultPlan.investmentScenarios[0]);
     setGoals(defaultPlan.goals);
     setDebts(defaultPlan.debts);
+    setSettings(defaultPlan.settings);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
@@ -159,6 +166,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(nextPlan.investmentScenarios[0]);
     setGoals(nextPlan.goals);
     setDebts(nextPlan.debts);
+    setSettings(nextPlan.settings);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
@@ -172,16 +180,16 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       investmentScenarios: [investmentScenario],
       goals,
       debts,
-      settings: initialPlan.settings,
+      settings,
     }),
     [
       debts,
       goals,
-      initialPlan.schemaVersion,
-      initialPlan.settings,
       investmentScenario,
       netIncome,
       normalizedAllocations,
+      settings,
+      initialPlan.schemaVersion,
     ],
   );
 
@@ -226,9 +234,6 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 12 QA Polish
-          </Badge>
           {lastSavedAt ? (
             <Badge className="w-fit bg-[var(--muted)] text-[var(--muted-foreground)]">
               <Save className="h-3.5 w-3.5" aria-hidden="true" />
@@ -253,9 +258,17 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         onImportScenario={(scenario) =>
           setImportedScenarios((currentScenarios) => [...currentScenarios, scenario])
         }
+        onImportComplete={setActionMessage}
         onOpenChange={setImportDialogOpen}
         open={importDialogOpen}
       />
+
+      {actionMessage ? (
+        <Alert>
+          <AlertTitle>Import สำเร็จ</AlertTitle>
+          <AlertDescription>{actionMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
@@ -387,6 +400,16 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
 
           {activeSection === "expenses" ? (
             <ExpenseTracker allocations={normalizedAllocations} />
+          ) : null}
+
+          {activeSection === "settings" ? (
+            <SettingsPanel
+              lastSavedAt={lastSavedAt}
+              onExportImport={() => setImportDialogOpen(true)}
+              onResetPlan={resetDefaultPlan}
+              onSettingsChange={setSettings}
+              settings={settings}
+            />
           ) : null}
             </motion.div>
           </AnimatePresence>

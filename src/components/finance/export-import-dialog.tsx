@@ -25,11 +25,13 @@ type ExportImportDialogProps = {
   open: boolean;
   onImportPlan: (plan: FinancialPlan) => void;
   onImportScenario: (scenario: ScenarioPlan) => void;
+  onImportComplete?: (message: string) => void;
   onOpenChange: (open: boolean) => void;
 };
 
 export function ExportImportDialog({
   currentPlan,
+  onImportComplete,
   onImportPlan,
   onImportScenario,
   onOpenChange,
@@ -41,7 +43,7 @@ export function ExportImportDialog({
     anonymize: false,
   });
   const [importText, setImportText] = useState("");
-  const [importMode, setImportMode] = useState<ImportMode>("scenario");
+  const [importMode, setImportMode] = useState<ImportMode>("replace");
   const [message, setMessage] = useState("");
 
   const exportData = useMemo(
@@ -74,13 +76,20 @@ export function ExportImportDialog({
         `Imported ${new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}`,
       );
       onImportScenario(scenario);
-      setMessage("เพิ่มไฟล์นำเข้าเป็น scenario แล้ว");
+      const successMessage = "เพิ่มไฟล์นำเข้าเป็น scenario แล้ว";
+      setMessage(successMessage);
+      onImportComplete?.(successMessage);
       onOpenChange(false);
       return;
     }
 
     onImportPlan(mergeImportedPlan(currentPlan, importResult.data, importMode));
-    setMessage(importMode === "replace" ? "แทนที่แผนทั้งหมดแล้ว" : "รวมข้อมูลนำเข้าแล้ว");
+    const successMessage =
+      importMode === "replace"
+        ? `แทนที่แผนทั้งหมดแล้ว: รายได้ ${importResult.data.profile.netIncome.toLocaleString("th-TH")} บาท`
+        : "รวมข้อมูลนำเข้าแล้ว";
+    setMessage(successMessage);
+    onImportComplete?.(successMessage);
     onOpenChange(false);
   }
 
@@ -175,9 +184,9 @@ export function ExportImportDialog({
                   onChange={(event) => setImportMode(event.target.value as ImportMode)}
                   value={importMode}
                 >
-                  <option value="scenario">Import as scenario</option>
-                  <option value="merge">Merge</option>
                   <option value="replace">Replace all</option>
+                  <option value="merge">Merge</option>
+                  <option value="scenario">Import as scenario</option>
                 </Select>
               </div>
 
