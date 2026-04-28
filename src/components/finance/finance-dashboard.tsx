@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, RotateCcw, Save } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/finance";
 import { createDefaultPlan } from "@/lib/default-plan";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { loadFinanceDraft, saveFinanceDraft } from "@/lib/storage";
 import type { AllocationCategory, FinancialPlan } from "@/types/finance";
 import type { ScenarioPlan } from "@/lib/scenarios";
 
@@ -62,6 +63,10 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   );
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importedScenarios, setImportedScenarios] = useState<ScenarioPlan[]>([]);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [storageMessage, setStorageMessage] = useState<string | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
+  const [simulatorRevision, setSimulatorRevision] = useState(0);
 
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
@@ -87,12 +92,25 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setNetIncome(defaultPlan.profile.netIncome);
     setAllocations(defaultPlan.allocations);
     setInvestmentScenario(defaultPlan.investmentScenarios[0]);
+    setSimulatorRevision((currentRevision) => currentRevision + 1);
+  }
+
+  function resetAllocations() {
+    const defaultPlan = createDefaultPlan(netIncome);
+    setAllocations(defaultPlan.allocations);
+  }
+
+  function resetSimulator() {
+    const defaultPlan = createDefaultPlan(netIncome);
+    setInvestmentScenario(defaultPlan.investmentScenarios[0]);
+    setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
   function applyPlan(nextPlan: FinancialPlan) {
     setNetIncome(nextPlan.profile.netIncome);
     setAllocations(nextPlan.allocations);
     setInvestmentScenario(nextPlan.investmentScenarios[0]);
+    setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
   const currentPlan: FinancialPlan = useMemo(
@@ -118,6 +136,35 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     ],
   );
 
+  useEffect(() => {
+    const savedDraft = loadFinanceDraft();
+    queueMicrotask(() => {
+      if (savedDraft.ok) {
+        applyPlan(savedDraft.draft.plan);
+        setLastSavedAt(savedDraft.draft.savedAt);
+        setStorageMessage(savedDraft.migrated ? "โหลด draft และ migrate schema แล้ว" : null);
+      }
+      setStorageReady(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!storageReady) return;
+
+    const savedDraft = saveFinanceDraft(currentPlan);
+    if (!savedDraft) {
+      queueMicrotask(() => {
+        setStorageMessage("ไม่สามารถบันทึก draft ใน browser นี้ได้");
+      });
+      return;
+    }
+
+    queueMicrotask(() => {
+      setLastSavedAt(savedDraft.savedAt);
+      setStorageMessage(null);
+    });
+  }, [currentPlan, storageReady]);
+
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-20 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -131,11 +178,21 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 9 Export / Import
+            Phase 10 Persistence
           </Badge>
+          {lastSavedAt ? (
+            <Badge className="w-fit bg-[var(--muted)] text-[var(--muted-foreground)]">
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              Saved {formatSavedTime(lastSavedAt)}
+            </Badge>
+          ) : null}
           <Button onClick={() => setImportDialogOpen(true)} size="sm" type="button" variant="outline">
             <Download className="h-4 w-4" aria-hidden="true" />
             Export / Import
+          </Button>
+          <Button onClick={resetDefaultPlan} size="sm" type="button" variant="secondary">
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            Reset all
           </Button>
           <ThemeToggle />
         </div>
@@ -172,6 +229,13 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </Alert>
       )}
 
+      {storageMessage ? (
+        <Alert>
+          <AlertTitle>Storage</AlertTitle>
+          <AlertDescription>{storageMessage}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <AllocationChart allocations={normalizedAllocations} />
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -182,7 +246,11 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         <CashflowHealth netIncome={netIncome} remaining={remaining} totals={totals} />
       </div>
 
-      <InvestmentSimulator initialScenario={investmentScenario} />
+      <InvestmentSimulator
+        key={simulatorRevision}
+        initialScenario={investmentScenario}
+        onScenarioChange={setInvestmentScenario}
+      />
 
       <ScenarioPlanner
         allocations={normalizedAllocations}
@@ -196,8 +264,19 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         netIncome={netIncome}
         onAllocationsChange={handleAllocationsChange}
         onNetIncomeChange={handleNetIncomeChange}
-        onReset={resetDefaultPlan}
+        onReset={resetAllocations}
       />
+
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={resetAllocations} size="sm" type="button" variant="outline">
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Reset allocation
+        </Button>
+        <Button onClick={resetSimulator} size="sm" type="button" variant="outline">
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Reset simulator
+        </Button>
+      </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)] px-4 py-3 shadow-lg md:hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-3 gap-2 text-sm">
@@ -223,4 +302,16 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       </div>
     </div>
   );
+}
+
+function formatSavedTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
 }

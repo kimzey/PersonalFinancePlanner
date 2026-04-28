@@ -36,6 +36,7 @@ import type { InvestmentProjectionPoint, InvestmentScenario } from "@/types/fina
 
 type InvestmentSimulatorProps = {
   initialScenario: InvestmentScenario;
+  onScenarioChange?: (scenario: InvestmentScenario) => void;
 };
 
 type ProjectionTooltipProps = {
@@ -48,7 +49,10 @@ type ProjectionTooltipProps = {
 const yearPresets = [1, 5, 10, 15, 20, 30];
 const sensitivityReturns = [4, 6, 8, 10, 12];
 
-export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProps) {
+export function InvestmentSimulator({
+  initialScenario,
+  onScenarioChange,
+}: InvestmentSimulatorProps) {
   const [initialAmount, setInitialAmount] = useState(initialScenario.initialAmount);
   const [monthlyContribution, setMonthlyContribution] = useState(
     initialScenario.monthlyContribution,
@@ -87,6 +91,20 @@ export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProp
     setMonthlyContribution(initialScenario.monthlyContribution);
     setAnnualReturnPercent(initialScenario.annualReturnPercent);
     setYears(initialScenario.years);
+    onScenarioChange?.(initialScenario);
+  }
+
+  function updateScenario(patch: Partial<InvestmentScenario>) {
+    const nextScenario = {
+      ...initialScenario,
+      initialAmount: safeInitialAmount,
+      monthlyContribution: safeMonthlyContribution,
+      annualReturnPercent: safeAnnualReturnPercent,
+      years: safeYears,
+      ...patch,
+    };
+
+    onScenarioChange?.(nextScenario);
   }
 
   return (
@@ -114,7 +132,11 @@ export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProp
                 id="initial-amount"
                 inputMode="decimal"
                 min={0}
-                onChange={(event) => setInitialAmount(Number(event.target.value))}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setInitialAmount(nextValue);
+                  updateScenario({ initialAmount: Math.max(0, nextValue) });
+                }}
                 type="number"
                 value={roundInput(safeInitialAmount)}
               />
@@ -126,7 +148,11 @@ export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProp
                 id="monthly-contribution"
                 inputMode="decimal"
                 min={0}
-                onChange={(event) => setMonthlyContribution(Number(event.target.value))}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setMonthlyContribution(nextValue);
+                  updateScenario({ monthlyContribution: Math.max(0, nextValue) });
+                }}
                 type="number"
                 value={roundInput(safeMonthlyContribution)}
               />
@@ -143,7 +169,11 @@ export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProp
                 id="annual-return"
                 max={20}
                 min={0}
-                onChange={(event) => setAnnualReturnPercent(Number(event.target.value))}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setAnnualReturnPercent(nextValue);
+                  updateScenario({ annualReturnPercent: Math.max(0, nextValue) });
+                }}
                 step={0.5}
                 value={safeAnnualReturnPercent}
               />
@@ -155,7 +185,10 @@ export function InvestmentSimulator({ initialScenario }: InvestmentSimulatorProp
                 {yearPresets.map((preset) => (
                   <Button
                     key={preset}
-                    onClick={() => setYears(preset)}
+                    onClick={() => {
+                      setYears(preset);
+                      updateScenario({ years: preset });
+                    }}
                     size="sm"
                     type="button"
                     variant={safeYears === preset ? "default" : "outline"}
