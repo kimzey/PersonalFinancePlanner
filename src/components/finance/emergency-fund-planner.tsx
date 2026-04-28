@@ -59,7 +59,7 @@ export function EmergencyFundPlanner({
         </div>
       </CardHeader>
       <CardContent className="grid gap-5">
-        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(14rem,0.75fr)_minmax(0,1.25fr)]">
+        <div className="grid min-w-0 gap-4 min-[1150px]:grid-cols-[minmax(16rem,0.75fr)_minmax(0,1.25fr)]">
           <div className="grid min-w-0 gap-4 rounded-lg border border-[var(--border)] p-4">
             <div className="grid gap-2">
               <Label htmlFor="current-emergency-fund">เงินฉุกเฉินปัจจุบัน</Label>
@@ -75,7 +75,7 @@ export function EmergencyFundPlanner({
 
             <div className="grid gap-2">
               <Label>เป้าหมาย</Label>
-              <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,6.5rem),1fr))] gap-2">
                 {targetMonthOptions.map((option) => (
                   <Button
                     key={option}
@@ -92,7 +92,7 @@ export function EmergencyFundPlanner({
           </div>
 
           <div className="grid min-w-0 gap-4">
-            <div className="grid min-w-0 gap-3 md:grid-cols-3">
+            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3">
               <Metric label="ค่าใช้จ่ายจำเป็น" value={formatCurrency(plan.monthlyEssentialExpense)} />
               <Metric label="เป้าหมายเงินฉุกเฉิน" value={formatCurrency(plan.targetAmount)} />
               <Metric label="เวลาถึงเป้า" value={monthText} />
@@ -127,7 +127,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-4">
       <div className="text-sm text-[var(--muted-foreground)]">{label}</div>
-      <div className="mt-2 text-lg font-semibold text-[var(--foreground)] sm:text-xl">
+      <div className="mt-2 text-lg font-semibold leading-snug text-[var(--foreground)] sm:text-xl">
         {value}
       </div>
     </div>

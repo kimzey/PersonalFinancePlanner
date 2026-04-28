@@ -334,7 +334,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           ) : null}
 
           {activeSection === "protection" ? (
-            <div className="grid min-w-0 gap-6 2xl:grid-cols-2">
+            <div className="grid min-w-0 gap-6 min-[1800px]:grid-cols-2">
               <EmergencyFundPlanner
                 monthlyEssentialExpense={totals.essentialAmount}
                 monthlySaving={totals.savingsAmount}
