@@ -1,7 +1,7 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Plus, Trash2, TrendingUp } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -27,12 +27,17 @@ import {
 } from "@/components/ui/table";
 import { ScenarioComparisonTable } from "@/components/finance/scenario-comparison-table";
 import {
-  calculateDcaFutureValue,
-  calculateTotalContribution,
-  calculateYearlyInvestmentProjection,
+  calculateScheduledDcaFutureValue,
+  calculateScheduledTotalContribution,
+  calculateScheduledYearlyInvestmentProjection,
+  normalizeContributionSteps,
 } from "@/lib/finance";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/format";
-import type { InvestmentProjectionPoint, InvestmentScenario } from "@/types/finance";
+import type {
+  InvestmentContributionStep,
+  InvestmentProjectionPoint,
+  InvestmentScenario,
+} from "@/types/finance";
 
 type InvestmentSimulatorProps = {
   initialScenario: InvestmentScenario;
@@ -49,6 +54,12 @@ type ProjectionTooltipProps = {
 const yearPresets = [1, 5, 10, 15, 20, 30];
 const sensitivityReturns = [4, 6, 8, 10, 12];
 
+type DraftContributionStep = {
+  id: string;
+  startMonth: string;
+  monthlyContribution: string;
+};
+
 export function InvestmentSimulator({
   initialScenario,
   onScenarioChange,
@@ -57,38 +68,58 @@ export function InvestmentSimulator({
   const [monthlyContribution, setMonthlyContribution] = useState(
     initialScenario.monthlyContribution,
   );
+  const [contributionSteps, setContributionSteps] = useState(
+    normalizeContributionSteps(
+      initialScenario.contributionSteps,
+      initialScenario.monthlyContribution,
+    ),
+  );
   const [annualReturnPercent, setAnnualReturnPercent] = useState(
     initialScenario.annualReturnPercent,
   );
   const [years, setYears] = useState(initialScenario.years);
 
   const safeInitialAmount = Math.max(0, initialAmount);
-  const safeMonthlyContribution = Math.max(0, monthlyContribution);
+  const safeContributionSteps = normalizeContributionSteps(
+    contributionSteps,
+    monthlyContribution,
+  );
+  const safeMonthlyContribution = safeContributionSteps[0].monthlyContribution;
   const safeAnnualReturnPercent = Math.max(0, annualReturnPercent);
   const safeYears = Math.max(1, years);
 
-  const projection = calculateYearlyInvestmentProjection(
+  const projection = calculateScheduledYearlyInvestmentProjection(
     safeInitialAmount,
-    safeMonthlyContribution,
+    safeContributionSteps,
     safeAnnualReturnPercent,
     safeYears,
   );
-  const futureValue = calculateDcaFutureValue(
+  const futureValue = calculateScheduledDcaFutureValue(
     safeInitialAmount,
-    safeMonthlyContribution,
+    safeContributionSteps,
     safeAnnualReturnPercent,
     safeYears,
   );
-  const totalContribution = calculateTotalContribution(
+  const totalContribution = calculateScheduledTotalContribution(
     safeInitialAmount,
-    safeMonthlyContribution,
+    safeContributionSteps,
     safeYears,
   );
   const estimatedGain = futureValue - totalContribution;
+  const finalMonthlyContribution = getMonthlyContributionForFinalMonth(
+    safeContributionSteps,
+    safeYears,
+  );
 
   function resetScenario() {
     setInitialAmount(initialScenario.initialAmount);
     setMonthlyContribution(initialScenario.monthlyContribution);
+    setContributionSteps(
+      normalizeContributionSteps(
+        initialScenario.contributionSteps,
+        initialScenario.monthlyContribution,
+      ),
+    );
     setAnnualReturnPercent(initialScenario.annualReturnPercent);
     setYears(initialScenario.years);
     onScenarioChange?.(initialScenario);
@@ -99,12 +130,23 @@ export function InvestmentSimulator({
       ...initialScenario,
       initialAmount: safeInitialAmount,
       monthlyContribution: safeMonthlyContribution,
+      contributionSteps: safeContributionSteps,
       annualReturnPercent: safeAnnualReturnPercent,
       years: safeYears,
       ...patch,
     };
 
     onScenarioChange?.(nextScenario);
+  }
+
+  function updateContributionSchedule(nextSteps: InvestmentContributionStep[]) {
+    const normalizedSteps = normalizeContributionSteps(nextSteps, safeMonthlyContribution);
+    setContributionSteps(normalizedSteps);
+    setMonthlyContribution(normalizedSteps[0].monthlyContribution);
+    updateScenario({
+      monthlyContribution: normalizedSteps[0].monthlyContribution,
+      contributionSteps: normalizedSteps,
+    });
   }
 
   return (
@@ -142,21 +184,10 @@ export function InvestmentSimulator({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="monthly-contribution">DCA รายเดือน</Label>
-              <Input
-                id="monthly-contribution"
-                inputMode="decimal"
-                min={0}
-                onChange={(event) => {
-                  const nextValue = Number(event.target.value);
-                  setMonthlyContribution(nextValue);
-                  updateScenario({ monthlyContribution: Math.max(0, nextValue) });
-                }}
-                type="number"
-                value={roundInput(safeMonthlyContribution)}
-              />
-            </div>
+            <ContributionScheduleEditor
+              contributionSteps={safeContributionSteps}
+              onContributionStepsChange={updateContributionSchedule}
+            />
 
             <div className="grid gap-3">
               <div className="flex items-center justify-between gap-3">
@@ -210,6 +241,14 @@ export function InvestmentSimulator({
               <MetricCard label="เงินต้นรวม" value={formatCurrency(totalContribution)} />
               <MetricCard label="กำไรคาดการณ์" value={formatCurrency(estimatedGain)} />
             </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+              DCA เริ่มต้น {formatCurrency(safeMonthlyContribution)} / เดือน และปลายแผนเป็น{" "}
+              {formatCurrency(finalMonthlyContribution)} / เดือน
+            </div>
+            <ContributionScheduleSummary
+              contributionSteps={safeContributionSteps}
+              years={safeYears}
+            />
 
             <div className="h-80 rounded-lg border border-[var(--border)] p-3">
               <ResponsiveContainer height="100%" width="100%">
@@ -276,7 +315,7 @@ export function InvestmentSimulator({
             </div>
             <SensitivityTable
               initialAmount={safeInitialAmount}
-              monthlyContribution={safeMonthlyContribution}
+              contributionSteps={safeContributionSteps}
               years={safeYears}
             />
           </section>
@@ -294,6 +333,196 @@ export function InvestmentSimulator({
   );
 }
 
+function ContributionScheduleEditor({
+  contributionSteps,
+  onContributionStepsChange,
+}: {
+  contributionSteps: InvestmentContributionStep[];
+  onContributionStepsChange: (steps: InvestmentContributionStep[]) => void;
+}) {
+  const [draftSteps, setDraftSteps] = useState(() => toDraftContributionSteps(contributionSteps));
+  const latestContributionSteps = useRef(contributionSteps);
+  const contributionSignature = useMemo(
+    () =>
+      contributionSteps
+        .map((step) => `${step.id}:${step.startMonth}:${step.monthlyContribution}`)
+        .join("|"),
+    [contributionSteps],
+  );
+
+  useEffect(() => {
+    latestContributionSteps.current = contributionSteps;
+  }, [contributionSteps]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setDraftSteps(toDraftContributionSteps(latestContributionSteps.current));
+    });
+  }, [contributionSignature]);
+
+  function updateStep(
+    stepId: string,
+    patch: Partial<Pick<DraftContributionStep, "startMonth" | "monthlyContribution">>,
+  ) {
+    setDraftSteps((currentSteps) =>
+      currentSteps.map((step) =>
+        step.id === stepId
+          ? {
+              ...step,
+              ...patch,
+            }
+          : step,
+      ),
+    );
+  }
+
+  function applyDraftSteps() {
+    onContributionStepsChange(toContributionSteps(draftSteps, contributionSteps));
+  }
+
+  function addStep() {
+    const lastStep = toContributionSteps(draftSteps, contributionSteps).at(-1);
+
+    setDraftSteps((currentSteps) => [
+      ...currentSteps,
+      {
+        id: createContributionStepId(),
+        startMonth: String((lastStep?.startMonth ?? 1) + 60),
+        monthlyContribution: "",
+      },
+    ]);
+  }
+
+  function removeStep(stepId: string) {
+    if (draftSteps.length <= 1) return;
+
+    const nextSteps = toContributionSteps(
+      draftSteps.filter((step) => step.id !== stepId),
+      contributionSteps,
+    );
+    setDraftSteps(toDraftContributionSteps(nextSteps));
+    onContributionStepsChange(nextSteps);
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div>
+        <Label>DCA schedule</Label>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+          กำหนดยอดลงทุนรายเดือนตามช่วงเวลา เช่นเดือนที่ 61 คือหลังครบ 5 ปี
+          ถ้ายอดเท่าช่วงก่อนหน้า แถวนั้นจะไม่มีผลและระบบจะรวมช่วงให้อัตโนมัติ
+        </p>
+      </div>
+
+      <div className="grid gap-2">
+        {draftSteps.map((step, index) => (
+          <div
+            className="grid gap-2 rounded-md border border-[var(--border)] p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            key={step.id}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor={`contribution-start-${step.id}`}>
+                {index === 0 ? "เริ่มเดือน" : "เปลี่ยนตั้งแต่เดือน"}
+              </Label>
+              <Input
+                disabled={index === 0}
+                id={`contribution-start-${step.id}`}
+                inputMode="numeric"
+                min={1}
+                onChange={(event) =>
+                  updateStep(step.id, { startMonth: event.target.value })
+                }
+                onBlur={applyDraftSteps}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applyDraftSteps();
+                }}
+                type="number"
+                value={step.startMonth}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor={`contribution-amount-${step.id}`}>DCA / เดือน</Label>
+              <Input
+                id={`contribution-amount-${step.id}`}
+                inputMode="decimal"
+                min={0}
+                onChange={(event) =>
+                  updateStep(step.id, {
+                    monthlyContribution: event.target.value,
+                  })
+                }
+                onBlur={applyDraftSteps}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applyDraftSteps();
+                }}
+                type="number"
+                value={step.monthlyContribution}
+              />
+            </div>
+            <Button
+              disabled={draftSteps.length <= 1}
+              onClick={() => removeStep(step.id)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              <span className="sr-only">Remove DCA step</span>
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button onClick={addStep} type="button" variant="outline">
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add DCA step
+        </Button>
+        <Button onClick={applyDraftSteps} type="button" variant="secondary">
+          Apply DCA schedule
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ContributionScheduleSummary({
+  contributionSteps,
+  years,
+}: {
+  contributionSteps: InvestmentContributionStep[];
+  years: number;
+}) {
+  const segments = getContributionSegments(contributionSteps, years);
+
+  return (
+    <div className="rounded-lg border border-[var(--border)]">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ช่วงเดือน</TableHead>
+            <TableHead>DCA/เดือน</TableHead>
+            <TableHead>จำนวนเดือน</TableHead>
+            <TableHead>เงินต้นช่วงนี้</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {segments.map((segment) => (
+            <TableRow key={`${segment.startMonth}-${segment.endMonth}`}>
+              <TableCell>
+                {segment.startMonth}-{segment.endMonth}
+              </TableCell>
+              <TableCell>{formatCurrency(segment.monthlyContribution)}</TableCell>
+              <TableCell>{formatNumber(segment.months)}</TableCell>
+              <TableCell>{formatCurrency(segment.totalContribution)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] p-4">
@@ -305,11 +534,11 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 
 function SensitivityTable({
   initialAmount,
-  monthlyContribution,
+  contributionSteps,
   years,
 }: {
   initialAmount: number;
-  monthlyContribution: number;
+  contributionSteps: InvestmentContributionStep[];
   years: number;
 }) {
   return (
@@ -324,15 +553,15 @@ function SensitivityTable({
         </TableHeader>
         <TableBody>
           {sensitivityReturns.map((returnPercent) => {
-            const futureValue = calculateDcaFutureValue(
+            const futureValue = calculateScheduledDcaFutureValue(
               initialAmount,
-              monthlyContribution,
+              contributionSteps,
               returnPercent,
               years,
             );
-            const totalContribution = calculateTotalContribution(
+            const totalContribution = calculateScheduledTotalContribution(
               initialAmount,
-              monthlyContribution,
+              contributionSteps,
               years,
             );
 
@@ -375,4 +604,83 @@ function ProjectionTooltip({ active, payload }: ProjectionTooltipProps) {
 
 function roundInput(value: number) {
   return Number(value.toFixed(2));
+}
+
+function getMonthlyContributionForFinalMonth(
+  contributionSteps: InvestmentContributionStep[],
+  years: number,
+) {
+  const finalMonth = Math.max(1, Math.round(years * 12));
+  return contributionSteps.reduce(
+    (currentContribution, step) =>
+      step.startMonth <= finalMonth ? step.monthlyContribution : currentContribution,
+    contributionSteps[0]?.monthlyContribution ?? 0,
+  );
+}
+
+function createContributionStepId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `contribution-step-${crypto.randomUUID()}`;
+  }
+
+  return `contribution-step-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toDraftContributionSteps(
+  contributionSteps: InvestmentContributionStep[],
+): DraftContributionStep[] {
+  return contributionSteps.map((step) => ({
+    id: step.id,
+    startMonth: String(step.startMonth),
+    monthlyContribution: String(roundInput(step.monthlyContribution)),
+  }));
+}
+
+function toContributionSteps(
+  draftSteps: DraftContributionStep[],
+  previousSteps: InvestmentContributionStep[],
+): InvestmentContributionStep[] {
+  return draftSteps.map((step, index) => {
+    const previousStep = previousSteps.find((previous) => previous.id === step.id);
+    const parsedStartMonth = Number(step.startMonth);
+    const parsedMonthlyContribution = Number(step.monthlyContribution);
+
+    return {
+      id: step.id,
+      startMonth:
+        index === 0
+          ? 1
+          : Number.isFinite(parsedStartMonth) && parsedStartMonth > 0
+            ? Math.round(parsedStartMonth)
+            : previousStep?.startMonth ?? 1,
+      monthlyContribution:
+        Number.isFinite(parsedMonthlyContribution) && parsedMonthlyContribution >= 0
+          ? parsedMonthlyContribution
+          : previousStep?.monthlyContribution ?? 0,
+    };
+  });
+}
+
+function getContributionSegments(
+  contributionSteps: InvestmentContributionStep[],
+  years: number,
+) {
+  const finalMonth = Math.max(1, Math.round(years * 12));
+
+  return contributionSteps
+    .map((step, index) => {
+      const nextStep = contributionSteps[index + 1];
+      const startMonth = Math.min(step.startMonth, finalMonth);
+      const endMonth = Math.min((nextStep?.startMonth ?? finalMonth + 1) - 1, finalMonth);
+      const months = Math.max(0, endMonth - startMonth + 1);
+
+      return {
+        startMonth,
+        endMonth,
+        months,
+        monthlyContribution: step.monthlyContribution,
+        totalContribution: months * step.monthlyContribution,
+      };
+    })
+    .filter((segment) => segment.months > 0);
 }

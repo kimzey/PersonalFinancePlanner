@@ -84,7 +84,21 @@ function isInvestmentScenarioLike(
     typeof value.initialAmount === "number" &&
     typeof value.monthlyContribution === "number" &&
     typeof value.annualReturnPercent === "number" &&
-    typeof value.years === "number"
+    typeof value.years === "number" &&
+    (value.contributionSteps === undefined ||
+      (Array.isArray(value.contributionSteps) &&
+        value.contributionSteps.every(isContributionStepLike)))
+  );
+}
+
+function isContributionStepLike(
+  value: unknown,
+): value is NonNullable<FinancialPlan["investmentScenarios"][number]["contributionSteps"]>[number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.startMonth === "number" &&
+    typeof value.monthlyContribution === "number"
   );
 }
 

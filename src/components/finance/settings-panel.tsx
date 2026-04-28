@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import type React from "react";
-import { Download, Globe2, RotateCcw, Save, Settings, Wallet } from "lucide-react";
+import { Copy, Download, Globe2, Plus, RotateCcw, Save, Settings, Trash2, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,26 +12,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
+import type { StoredFinancePlan } from "@/lib/storage";
 import type { FinancialPlan } from "@/types/finance";
 
 type SettingsPanelProps = {
+  activePlanId: string;
   lastSavedAt: string | null;
   onExportImport: () => void;
+  onCreatePlan: () => void;
+  onDeletePlan: () => void;
+  onDuplicatePlan: () => void;
+  onRenamePlan: (name: string) => void;
   onResetPlan: () => void;
+  onSelectPlan: (planId: string) => void;
   onSettingsChange: (settings: FinancialPlan["settings"]) => void;
+  planProfiles: StoredFinancePlan[];
   settings: FinancialPlan["settings"];
 };
 
 export function SettingsPanel({
+  activePlanId,
   lastSavedAt,
   onExportImport,
+  onCreatePlan,
+  onDeletePlan,
+  onDuplicatePlan,
+  onRenamePlan,
   onResetPlan,
+  onSelectPlan,
   onSettingsChange,
+  planProfiles,
   settings,
 }: SettingsPanelProps) {
+  const activePlan = planProfiles.find((plan) => plan.id === activePlanId) ?? planProfiles[0];
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="gap-3 border-b border-[var(--border)] bg-[linear-gradient(135deg,var(--card)_0%,var(--muted)_100%)]">
@@ -53,6 +71,56 @@ export function SettingsPanel({
       </CardHeader>
 
       <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+        <SettingsTile
+          description="สร้างและสลับ plan แยกกัน เพื่อให้การแก้ไขไม่ทับ profile อื่น"
+          icon={Plus}
+          title="Plans"
+        >
+          <div className="grid gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="settings-active-plan">Active plan</Label>
+              <Select
+                id="settings-active-plan"
+                onChange={(event) => onSelectPlan(event.target.value)}
+                value={activePlanId}
+              >
+                {planProfiles.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name || "Untitled plan"}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="settings-plan-name">Plan name</Label>
+              <Input
+                id="settings-plan-name"
+                onChange={(event) => onRenamePlan(event.target.value)}
+                value={activePlan?.name ?? ""}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={onCreatePlan} type="button" variant="outline">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                New
+              </Button>
+              <Button onClick={onDuplicatePlan} type="button" variant="outline">
+                <Copy className="h-4 w-4" aria-hidden="true" />
+                Duplicate
+              </Button>
+              <Button
+                disabled={planProfiles.length <= 1}
+                onClick={onDeletePlan}
+                type="button"
+                variant="secondary"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </SettingsTile>
+
         <SettingsTile
           description="สลับโหมดสีของแอป ระบบจะจำค่าที่เลือกไว้ใน browser"
           icon={Globe2}

@@ -6,10 +6,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   BarChart3,
   Calculator,
+  Copy,
   Download,
   Landmark,
   LineChart,
   PieChart,
+  Plus,
   ReceiptText,
   RotateCcw,
   Save,
@@ -17,10 +19,14 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Target,
+  Trash2,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { AllocationEditor } from "@/components/finance/allocation-editor";
 import { CashflowHealth } from "@/components/finance/cashflow-health";
 import { EmergencyFundPlanner } from "@/components/finance/emergency-fund-planner";
@@ -41,7 +47,11 @@ import {
 } from "@/lib/finance";
 import { createDefaultPlan } from "@/lib/default-plan";
 import { formatCurrency, formatPercent } from "@/lib/format";
-import { loadFinanceDraft, saveFinanceDraft } from "@/lib/storage";
+import {
+  loadFinancePlanCollection,
+  saveFinancePlanCollection,
+  type StoredFinancePlan,
+} from "@/lib/storage";
 import type { AllocationCategory, FinancialPlan } from "@/types/finance";
 import type { ScenarioPlan } from "@/lib/scenarios";
 
@@ -105,6 +115,13 @@ const InvestmentSimulator = dynamic(
 );
 
 export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
+  const initialPlanProfile: StoredFinancePlan = {
+    id: "default-plan",
+    name: "แผนหลัก",
+    createdAt: "",
+    updatedAt: "",
+    plan: initialPlan,
+  };
   const [netIncome, setNetIncome] = useState(initialPlan.profile.netIncome);
   const [allocations, setAllocations] = useState(initialPlan.allocations);
   const [investmentScenario, setInvestmentScenario] = useState(
@@ -121,6 +138,10 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [debts, setDebts] = useState(initialPlan.debts);
   const [settings, setSettings] = useState(initialPlan.settings);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+  const [planProfiles, setPlanProfiles] = useState<StoredFinancePlan[]>([
+    initialPlanProfile,
+  ]);
+  const [activePlanId, setActivePlanId] = useState(initialPlanProfile.id);
   const shouldReduceMotion = useReducedMotion();
 
   const normalizedAllocations = useMemo(
@@ -198,12 +219,21 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   );
 
   useEffect(() => {
-    const savedDraft = loadFinanceDraft();
+    const savedCollection = loadFinancePlanCollection();
     queueMicrotask(() => {
-      if (savedDraft.ok) {
-        applyPlan(savedDraft.draft.plan);
-        setLastSavedAt(savedDraft.draft.savedAt);
-        setStorageMessage(savedDraft.migrated ? "โหลด draft และ migrate schema แล้ว" : null);
+      if (savedCollection.ok) {
+        const activePlan =
+          savedCollection.collection.plans.find(
+            (plan) => plan.id === savedCollection.collection.activePlanId,
+          ) ?? savedCollection.collection.plans[0];
+
+        setPlanProfiles(savedCollection.collection.plans);
+        setActivePlanId(activePlan.id);
+        applyPlan(activePlan.plan);
+        setLastSavedAt(activePlan.updatedAt || savedCollection.collection.savedAt);
+        setStorageMessage(
+          savedCollection.migrated ? "โหลด draft เดิมและย้ายเข้า plan library แล้ว" : null,
+        );
       }
       setStorageReady(true);
     });
@@ -212,19 +242,127 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   useEffect(() => {
     if (!storageReady) return;
 
-    const savedDraft = saveFinanceDraft(currentPlan);
-    if (!savedDraft) {
+    const savedAt = new Date().toISOString();
+    queueMicrotask(() => {
+      setPlanProfiles((currentProfiles) => {
+        return currentProfiles.map((profile) =>
+          profile.id === activePlanId
+            ? {
+                ...profile,
+                updatedAt: savedAt,
+                plan: currentPlan,
+              }
+            : profile,
+        );
+      });
+    });
+  }, [activePlanId, currentPlan, storageReady]);
+
+  useEffect(() => {
+    if (!storageReady) return;
+
+    const activeProfile = planProfiles.find((profile) => profile.id === activePlanId);
+    const savedCollection = saveFinancePlanCollection({
+      storageSchemaVersion: 1,
+      savedAt: new Date().toISOString(),
+      activePlanId,
+      plans: planProfiles,
+    });
+
+    if (!savedCollection) {
       queueMicrotask(() => {
-        setStorageMessage("ไม่สามารถบันทึก draft ใน browser นี้ได้");
+        setStorageMessage("ไม่สามารถบันทึก plan ใน browser นี้ได้");
       });
       return;
     }
 
     queueMicrotask(() => {
-      setLastSavedAt(savedDraft.savedAt);
+      setLastSavedAt(activeProfile?.updatedAt || savedCollection.savedAt);
       setStorageMessage(null);
     });
-  }, [currentPlan, storageReady]);
+  }, [activePlanId, planProfiles, storageReady]);
+
+  function handleSelectPlan(nextPlanId: string) {
+    const nextProfile = planProfiles.find((profile) => profile.id === nextPlanId);
+    if (!nextProfile) return;
+
+    setActivePlanId(nextProfile.id);
+    applyPlan(nextProfile.plan);
+    setLastSavedAt(nextProfile.updatedAt || null);
+    setStorageMessage(null);
+  }
+
+  function handleRenamePlan(nextName: string) {
+    setPlanProfiles((currentProfiles) =>
+      currentProfiles.map((profile) =>
+        profile.id === activePlanId
+          ? {
+              ...profile,
+              name: nextName,
+            }
+          : profile,
+      ),
+    );
+  }
+
+  function createNewPlan() {
+    const now = new Date().toISOString();
+    const nextPlan = createDefaultPlan();
+    const nextProfile: StoredFinancePlan = {
+      id: createPlanId("plan"),
+      name: `Plan ${planProfiles.length + 1}`,
+      createdAt: now,
+      updatedAt: now,
+      plan: nextPlan,
+    };
+
+    setPlanProfiles((currentProfiles) => [
+      ...currentProfiles.map((profile) =>
+        profile.id === activePlanId ? { ...profile, updatedAt: now, plan: currentPlan } : profile,
+      ),
+      nextProfile,
+    ]);
+    setActivePlanId(nextProfile.id);
+    applyPlan(nextPlan);
+    setLastSavedAt(now);
+    setStorageMessage(null);
+  }
+
+  function duplicateCurrentPlan() {
+    const activeProfile = planProfiles.find((profile) => profile.id === activePlanId);
+    const now = new Date().toISOString();
+    const nextProfile: StoredFinancePlan = {
+      id: createPlanId("copy"),
+      name: `${activeProfile?.name || "Plan"} copy`,
+      createdAt: now,
+      updatedAt: now,
+      plan: currentPlan,
+    };
+
+    setPlanProfiles((currentProfiles) => [
+      ...currentProfiles.map((profile) =>
+        profile.id === activePlanId ? { ...profile, updatedAt: now, plan: currentPlan } : profile,
+      ),
+      nextProfile,
+    ]);
+    setActivePlanId(nextProfile.id);
+    setLastSavedAt(now);
+    setStorageMessage(null);
+  }
+
+  function deleteCurrentPlan() {
+    if (planProfiles.length <= 1) return;
+
+    const currentIndex = planProfiles.findIndex((profile) => profile.id === activePlanId);
+    const nextProfiles = planProfiles.filter((profile) => profile.id !== activePlanId);
+    const nextProfile = nextProfiles[Math.max(0, currentIndex - 1)] ?? nextProfiles[0];
+
+    setPlanProfiles(nextProfiles);
+    setActivePlanId(nextProfile.id);
+    applyPlan(nextProfile.plan);
+    setLastSavedAt(nextProfile.updatedAt || null);
+    setStorageMessage(null);
+  }
 
   return (
     <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-6 pb-24 md:pb-0">
@@ -255,6 +393,17 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           <ThemeToggle />
         </div>
       </header>
+
+      <PlanProfileBar
+        activePlanId={activePlanId}
+        canDelete={planProfiles.length > 1}
+        onCreatePlan={createNewPlan}
+        onDeletePlan={deleteCurrentPlan}
+        onDuplicatePlan={duplicateCurrentPlan}
+        onRenamePlan={handleRenamePlan}
+        onSelectPlan={handleSelectPlan}
+        plans={planProfiles}
+      />
 
       <ExportImportDialog
         currentPlan={currentPlan}
@@ -412,10 +561,17 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
 
           {activeSection === "settings" ? (
             <SettingsPanel
+              activePlanId={activePlanId}
               lastSavedAt={lastSavedAt}
               onExportImport={() => setImportDialogOpen(true)}
+              onCreatePlan={createNewPlan}
+              onDeletePlan={deleteCurrentPlan}
+              onDuplicatePlan={duplicateCurrentPlan}
+              onRenamePlan={handleRenamePlan}
               onResetPlan={resetDefaultPlan}
+              onSelectPlan={handleSelectPlan}
               onSettingsChange={setSettings}
+              planProfiles={planProfiles}
               settings={settings}
             />
           ) : null}
@@ -447,6 +603,78 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function PlanProfileBar({
+  activePlanId,
+  canDelete,
+  onCreatePlan,
+  onDeletePlan,
+  onDuplicatePlan,
+  onRenamePlan,
+  onSelectPlan,
+  plans,
+}: {
+  activePlanId: string;
+  canDelete: boolean;
+  onCreatePlan: () => void;
+  onDeletePlan: () => void;
+  onDuplicatePlan: () => void;
+  onRenamePlan: (name: string) => void;
+  onSelectPlan: (planId: string) => void;
+  plans: StoredFinancePlan[];
+}) {
+  const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
+
+  return (
+    <section className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm md:grid-cols-[minmax(12rem,18rem)_minmax(12rem,1fr)_auto] md:items-end">
+      <div className="grid gap-2">
+        <Label htmlFor="active-plan">Plan / Profile</Label>
+        <Select
+          id="active-plan"
+          onChange={(event) => onSelectPlan(event.target.value)}
+          value={activePlanId}
+        >
+          {plans.map((plan) => (
+            <option key={plan.id} value={plan.id}>
+              {plan.name || "Untitled plan"}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="plan-name">Plan name</Label>
+        <Input
+          id="plan-name"
+          onChange={(event) => onRenamePlan(event.target.value)}
+          placeholder="ตั้งชื่อ plan"
+          value={activePlan?.name ?? ""}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={onCreatePlan} size="sm" type="button" variant="outline">
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          New
+        </Button>
+        <Button onClick={onDuplicatePlan} size="sm" type="button" variant="outline">
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          Duplicate
+        </Button>
+        <Button
+          disabled={!canDelete}
+          onClick={onDeletePlan}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Delete
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -490,4 +718,12 @@ function formatSavedTime(value: string) {
     minute: "2-digit",
     second: "2-digit",
   }).format(date);
+}
+
+function createPlanId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

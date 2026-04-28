@@ -3,6 +3,7 @@ import type {
   AllocationTotals,
   CashflowHealth,
   EmergencyFundPlan,
+  InvestmentContributionStep,
   InvestmentProjectionPoint,
 } from "@/types/finance";
 
@@ -215,6 +216,41 @@ export function calculateTotalContribution(
   return principal + monthlyContribution * Math.round(years * 12);
 }
 
+export function calculateScheduledDcaFutureValue(
+  principal: number,
+  contributionSteps: InvestmentContributionStep[],
+  annualReturnPercent: number,
+  years: number,
+) {
+  const months = Math.round(years * 12);
+  const monthlyReturn = annualReturnPercent / 100 / 12;
+  const normalizedSteps = normalizeContributionSteps(contributionSteps, 0);
+  let value = Math.max(0, principal);
+
+  for (let month = 1; month <= months; month += 1) {
+    value *= 1 + monthlyReturn;
+    value += getMonthlyContributionForMonth(normalizedSteps, month);
+  }
+
+  return value;
+}
+
+export function calculateScheduledTotalContribution(
+  principal: number,
+  contributionSteps: InvestmentContributionStep[],
+  years: number,
+) {
+  const months = Math.round(years * 12);
+  const normalizedSteps = normalizeContributionSteps(contributionSteps, 0);
+  let totalContribution = Math.max(0, principal);
+
+  for (let month = 1; month <= months; month += 1) {
+    totalContribution += getMonthlyContributionForMonth(normalizedSteps, month);
+  }
+
+  return totalContribution;
+}
+
 export function calculateYearlyInvestmentProjection(
   principal: number,
   monthlyContribution: number,
@@ -244,6 +280,161 @@ export function calculateYearlyInvestmentProjection(
   });
 }
 
+export function calculateScheduledYearlyInvestmentProjection(
+  principal: number,
+  contributionSteps: InvestmentContributionStep[],
+  annualReturnPercent: number,
+  years: number,
+): InvestmentProjectionPoint[] {
+  return Array.from({ length: years }, (_, index) => {
+    const year = index + 1;
+    const totalContribution = calculateScheduledTotalContribution(
+      principal,
+      contributionSteps,
+      year,
+    );
+    const futureValue = calculateScheduledDcaFutureValue(
+      principal,
+      contributionSteps,
+      annualReturnPercent,
+      year,
+    );
+
+    return {
+      year,
+      totalContribution,
+      futureValue,
+      estimatedGain: futureValue - totalContribution,
+    };
+  });
+}
+
+export function calculateDividendIncomePlan({
+  portfolioValue,
+  annualDividendYieldPercent,
+  withholdingTaxPercent,
+}: {
+  portfolioValue: number;
+  annualDividendYieldPercent: number;
+  withholdingTaxPercent: number;
+}) {
+  const safePortfolioValue = Math.max(0, portfolioValue);
+  const safeAnnualDividendYieldPercent = Math.max(0, annualDividendYieldPercent);
+  const safeWithholdingTaxPercent = Math.min(100, Math.max(0, withholdingTaxPercent));
+  const grossAnnualDividend =
+    safePortfolioValue * (safeAnnualDividendYieldPercent / 100);
+  const taxAmount = grossAnnualDividend * (safeWithholdingTaxPercent / 100);
+  const netAnnualDividend = grossAnnualDividend - taxAmount;
+
+  return {
+    portfolioValue: safePortfolioValue,
+    annualDividendYieldPercent: safeAnnualDividendYieldPercent,
+    withholdingTaxPercent: safeWithholdingTaxPercent,
+    grossAnnualDividend,
+    grossMonthlyDividend: grossAnnualDividend / 12,
+    taxAmount,
+    netAnnualDividend,
+    netMonthlyDividend: netAnnualDividend / 12,
+  };
+}
+
+export function normalizeContributionSteps(
+  contributionSteps: InvestmentContributionStep[] | undefined,
+  fallbackMonthlyContribution: number,
+): InvestmentContributionStep[] {
+  const normalizedSteps = (contributionSteps ?? [])
+    .filter(
+      (step) =>
+        Number.isFinite(step.startMonth) && Number.isFinite(step.monthlyContribution),
+    )
+    .map((step, index) => ({
+      id: step.id || `contribution-step-${index + 1}`,
+      startMonth: Math.max(1, Math.round(step.startMonth)),
+      monthlyContribution: Math.max(0, step.monthlyContribution),
+    }))
+    .sort((a, b) => a.startMonth - b.startMonth);
+
+  if (normalizedSteps.length === 0) {
+    return [
+      {
+        id: "contribution-step-1",
+        startMonth: 1,
+        monthlyContribution: Math.max(0, fallbackMonthlyContribution),
+      },
+    ];
+  }
+
+  const stepsWithStartingMonth =
+    normalizedSteps[0].startMonth !== 1
+      ? [
+          {
+            id: "contribution-step-1",
+            startMonth: 1,
+            monthlyContribution: Math.max(0, fallbackMonthlyContribution),
+          },
+          ...normalizedSteps,
+        ]
+      : normalizedSteps;
+
+  return stepsWithStartingMonth.reduce<InvestmentContributionStep[]>((steps, step) => {
+    const previousStep = steps[steps.length - 1];
+
+    if (previousStep?.monthlyContribution === step.monthlyContribution) {
+      return steps;
+    }
+
+    return [...steps, step];
+  }, []);
+}
+
+export function findRedundantContributionSteps(
+  contributionSteps: InvestmentContributionStep[] | undefined,
+  fallbackMonthlyContribution: number,
+) {
+  const normalizedSteps = (contributionSteps ?? [])
+    .filter(
+      (step) =>
+        Number.isFinite(step.startMonth) && Number.isFinite(step.monthlyContribution),
+    )
+    .map((step, index) => ({
+      id: step.id || `contribution-step-${index + 1}`,
+      startMonth: Math.max(1, Math.round(step.startMonth)),
+      monthlyContribution: Math.max(0, step.monthlyContribution),
+    }))
+    .sort((a, b) => a.startMonth - b.startMonth);
+  const stepsWithStartingMonth =
+    normalizedSteps.length === 0
+      ? [
+          {
+            id: "contribution-step-1",
+            startMonth: 1,
+            monthlyContribution: Math.max(0, fallbackMonthlyContribution),
+          },
+        ]
+      : normalizedSteps[0].startMonth !== 1
+        ? [
+            {
+              id: "contribution-step-1",
+              startMonth: 1,
+              monthlyContribution: Math.max(0, fallbackMonthlyContribution),
+            },
+            ...normalizedSteps,
+          ]
+        : normalizedSteps;
+  const redundantIds = new Set<string>();
+
+  stepsWithStartingMonth.reduce<InvestmentContributionStep | null>((previousStep, step) => {
+    if (previousStep?.monthlyContribution === step.monthlyContribution) {
+      redundantIds.add(step.id);
+      return previousStep;
+    }
+
+    return step;
+  }, null);
+
+  return redundantIds;
+}
+
 export function validateAllocationPlan(
   netIncome: number,
   allocations: AllocationCategory[],
@@ -269,4 +460,18 @@ function isEssentialAllocation(category: AllocationCategory) {
     category.kind === "fixed" ||
     category.kind === "debt"
   );
+}
+
+function getMonthlyContributionForMonth(
+  normalizedSteps: InvestmentContributionStep[],
+  month: number,
+) {
+  let contribution = normalizedSteps[0].monthlyContribution;
+
+  for (const step of normalizedSteps) {
+    if (step.startMonth > month) break;
+    contribution = step.monthlyContribution;
+  }
+
+  return contribution;
 }

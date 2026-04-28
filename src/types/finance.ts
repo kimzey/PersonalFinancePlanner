@@ -27,8 +27,15 @@ export type InvestmentScenario = {
   name: string;
   initialAmount: number;
   monthlyContribution: number;
+  contributionSteps?: InvestmentContributionStep[];
   annualReturnPercent: number;
   years: number;
+};
+
+export type InvestmentContributionStep = {
+  id: string;
+  startMonth: number;
+  monthlyContribution: number;
 };
 
 export type FinancialGoal = {

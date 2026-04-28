@@ -166,6 +166,36 @@ function validateInvestmentScenario(
       errors.push(`investment scenario #${index + 1}.${key} ต้องเป็นตัวเลข`);
     }
   }
+
+  if (scenario.contributionSteps !== undefined) {
+    if (!Array.isArray(scenario.contributionSteps)) {
+      errors.push(`investment scenario #${index + 1}.contributionSteps ต้องเป็น array`);
+      return;
+    }
+
+    scenario.contributionSteps.forEach((step, stepIndex) => {
+      if (!isRecord(step)) {
+        errors.push(
+          `investment scenario #${index + 1}.contributionSteps #${stepIndex + 1} ต้องเป็น object`,
+        );
+        return;
+      }
+
+      if (typeof step.id !== "string") {
+        errors.push(
+          `investment scenario #${index + 1}.contributionSteps #${stepIndex + 1}.id ต้องเป็นข้อความ`,
+        );
+      }
+
+      for (const key of ["startMonth", "monthlyContribution"] as const) {
+        if (!isFiniteNumber(step[key])) {
+          errors.push(
+            `investment scenario #${index + 1}.contributionSteps #${stepIndex + 1}.${key} ต้องเป็นตัวเลข`,
+          );
+        }
+      }
+    });
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

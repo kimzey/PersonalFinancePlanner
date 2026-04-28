@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultPlan } from "@/lib/default-plan";
 import {
+  FINANCE_PLANS_STORAGE_KEY,
   FINANCE_STORAGE_KEY,
+  loadFinancePlanCollection,
   loadFinanceDraft,
+  saveFinancePlanCollection,
   saveFinanceDraft,
 } from "@/lib/storage";
 
@@ -47,6 +50,67 @@ describe("finance draft storage", () => {
     const loaded = loadFinanceDraft(storage);
 
     expect(loaded.ok).toBe(false);
+  });
+
+  it("saves and loads multiple named plans", () => {
+    const storage = createMemoryStorage();
+    const firstPlan = createDefaultPlan(50_000);
+    const secondPlan = createDefaultPlan(75_000);
+
+    const saved = saveFinancePlanCollection(
+      {
+        storageSchemaVersion: 1,
+        savedAt: "2026-04-28T00:00:00.000Z",
+        activePlanId: "second",
+        plans: [
+          {
+            id: "first",
+            name: "Main",
+            createdAt: "2026-04-28T00:00:00.000Z",
+            updatedAt: "2026-04-28T00:00:00.000Z",
+            plan: firstPlan,
+          },
+          {
+            id: "second",
+            name: "Side income",
+            createdAt: "2026-04-28T00:00:00.000Z",
+            updatedAt: "2026-04-28T01:00:00.000Z",
+            plan: secondPlan,
+          },
+        ],
+      },
+      storage,
+      new Date("2026-04-28T02:00:00.000Z"),
+    );
+    const loaded = loadFinancePlanCollection(storage);
+
+    expect(saved?.activePlanId).toBe("second");
+    expect(loaded.ok).toBe(true);
+    if (loaded.ok) {
+      expect(loaded.collection.activePlanId).toBe("second");
+      expect(loaded.collection.plans).toHaveLength(2);
+      expect(loaded.collection.plans[1].plan.profile.netIncome).toBe(75_000);
+    }
+  });
+
+  it("migrates a legacy single draft into the plan collection", () => {
+    const storage = createMemoryStorage();
+    const legacyPlan = createDefaultPlan(42_000);
+
+    storage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(legacyPlan));
+    const loaded = loadFinancePlanCollection(
+      storage,
+      new Date("2026-04-28T00:00:00.000Z"),
+    );
+
+    expect(storage.getItem(FINANCE_PLANS_STORAGE_KEY)).toBeNull();
+    expect(loaded.ok).toBe(true);
+    if (loaded.ok) {
+      expect(loaded.migrated).toBe(true);
+      expect(loaded.collection.activePlanId).toBe("default-plan");
+      expect(loaded.collection.plans[0].name).toBe("แผนหลัก");
+      expect(loaded.collection.plans[0].plan.profile.netIncome).toBe(42_000);
+    }
   });
 });
 

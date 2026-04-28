@@ -6,7 +6,11 @@ import {
   calculateDcaFutureValue,
   calculateEmergencyFundPlan,
   calculateRemainingIncome,
+  calculateScheduledDcaFutureValue,
+  calculateScheduledTotalContribution,
+  calculateScheduledYearlyInvestmentProjection,
   calculateYearlyInvestmentProjection,
+  normalizeContributionSteps,
   percentToAmount,
   validateAllocationPlan,
 } from "@/lib/finance";
@@ -88,6 +92,59 @@ describe("finance calculations", () => {
     expect(projection).toHaveLength(5);
     expect(projection[4].totalContribution).toBe(480_000);
     expect(projection[4].futureValue).toBeCloseTo(586_962, -4);
+  });
+
+  it("calculates scheduled DCA increases over time", () => {
+    const contributionSteps = [
+      { id: "start", startMonth: 1, monthlyContribution: 8_000 },
+      { id: "year-6", startMonth: 61, monthlyContribution: 15_000 },
+    ];
+
+    const totalContribution = calculateScheduledTotalContribution(
+      0,
+      contributionSteps,
+      10,
+    );
+    const futureValue = calculateScheduledDcaFutureValue(0, contributionSteps, 0, 10);
+    const projection = calculateScheduledYearlyInvestmentProjection(
+      0,
+      contributionSteps,
+      0,
+      10,
+    );
+
+    expect(totalContribution).toBe(1_380_000);
+    expect(futureValue).toBe(1_380_000);
+    expect(projection[4].totalContribution).toBe(480_000);
+    expect(projection[9].totalContribution).toBe(1_380_000);
+  });
+
+  it("normalizes contribution steps with legacy monthly contribution fallback", () => {
+    const steps = normalizeContributionSteps(undefined, 7_500);
+
+    expect(steps).toEqual([
+      {
+        id: "contribution-step-1",
+        startMonth: 1,
+        monthlyContribution: 7_500,
+      },
+    ]);
+  });
+
+  it("collapses scheduled DCA steps that do not change the monthly contribution", () => {
+    const steps = normalizeContributionSteps(
+      [
+        { id: "start", startMonth: 1, monthlyContribution: 8_000 },
+        { id: "month-24", startMonth: 24, monthlyContribution: 15_000 },
+        { id: "month-36", startMonth: 36, monthlyContribution: 15_000 },
+      ],
+      8_000,
+    );
+
+    expect(steps).toEqual([
+      { id: "start", startMonth: 1, monthlyContribution: 8_000 },
+      { id: "month-24", startMonth: 24, monthlyContribution: 15_000 },
+    ]);
   });
 
   it("validates allocation plan status", () => {
