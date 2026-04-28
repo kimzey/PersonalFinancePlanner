@@ -33,9 +33,25 @@ const AllocationChart = dynamic(
   },
 );
 
+const InvestmentSimulator = dynamic(
+  () =>
+    import("@/components/finance/investment-simulator").then(
+      (module) => module.InvestmentSimulator,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[36rem] rounded-lg border border-[var(--border)] bg-[var(--card)]" />
+    ),
+  },
+);
+
 export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [netIncome, setNetIncome] = useState(initialPlan.profile.netIncome);
   const [allocations, setAllocations] = useState(initialPlan.allocations);
+  const [investmentScenario, setInvestmentScenario] = useState(
+    initialPlan.investmentScenarios[0],
+  );
 
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
@@ -60,6 +76,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     const defaultPlan = createDefaultPlan();
     setNetIncome(defaultPlan.profile.netIncome);
     setAllocations(defaultPlan.allocations);
+    setInvestmentScenario(defaultPlan.investmentScenarios[0]);
   }
 
   return (
@@ -75,7 +92,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 4 Visualization
+            Phase 5 Investment Simulator
           </Badge>
           <ThemeToggle />
         </div>
@@ -101,6 +118,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       )}
 
       <AllocationChart allocations={normalizedAllocations} />
+
+      <InvestmentSimulator initialScenario={investmentScenario} />
 
       <AllocationEditor
         allocations={normalizedAllocations}
