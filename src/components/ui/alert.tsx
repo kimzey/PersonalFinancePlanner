@@ -11,8 +11,8 @@ export const Alert = React.forwardRef<
     className={cn(
       "rounded-lg border p-4 text-sm",
       variant === "destructive"
-        ? "border-red-200 bg-red-50 text-red-900"
-        : "border-teal-200 bg-teal-50 text-teal-950",
+        ? "border-[var(--destructive)] bg-[var(--danger-soft)] text-[var(--danger-soft-foreground)]"
+        : "border-[var(--primary)] bg-[var(--success-soft)] text-[var(--success-soft-foreground)]",
       className,
     )}
     {...props}

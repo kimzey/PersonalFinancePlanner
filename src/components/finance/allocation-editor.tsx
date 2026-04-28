@@ -187,7 +187,7 @@ export function AllocationEditor({
           </AlertDescription>
         </Alert>
 
-        <div className="hidden grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] gap-3 px-1 text-xs font-medium text-slate-500 lg:grid">
+        <div className="hidden grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] gap-3 px-1 text-xs font-medium text-[var(--muted-foreground)] lg:grid">
           <span>หมวดหมู่</span>
           <span>โหมด</span>
           <span>ค่าที่กรอก</span>
@@ -199,7 +199,7 @@ export function AllocationEditor({
         <div className="flex flex-col gap-3">
           {allocations.map((category, index) => (
             <div
-              className="grid gap-3 rounded-lg border border-[var(--border)] bg-white p-3 lg:grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] lg:items-center"
+              className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 lg:grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] lg:items-center"
               key={category.id}
             >
               <div className="grid gap-2">
@@ -266,17 +266,21 @@ export function AllocationEditor({
                 />
               </div>
 
-              <div className="text-sm font-medium text-slate-900">
-                <span className="mr-2 text-xs text-slate-500 lg:hidden">บาท</span>
+              <div className="text-sm font-medium text-[var(--foreground)]">
+                <span className="mr-2 text-xs text-[var(--muted-foreground)] lg:hidden">
+                  บาท
+                </span>
                 {formatCurrency(category.amount)}
               </div>
-              <div className="text-sm text-slate-600">
-                <span className="mr-2 text-xs text-slate-500 lg:hidden">%</span>
+              <div className="text-sm text-[var(--muted-foreground)]">
+                <span className="mr-2 text-xs text-[var(--muted-foreground)] lg:hidden">
+                  %
+                </span>
                 {formatPercent(category.percent)}
               </div>
 
               <div className="flex items-center justify-between gap-2 lg:justify-end">
-                <label className="flex items-center gap-2 text-xs text-slate-600">
+                <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
                   <Switch
                     checked={Boolean(category.locked)}
                     onChange={(event) =>
@@ -292,7 +296,7 @@ export function AllocationEditor({
                   type="button"
                   variant="ghost"
                 >
-                  <Trash2 className="h-4 w-4 text-red-700" aria-hidden="true" />
+                  <Trash2 className="h-4 w-4 text-[var(--destructive)]" aria-hidden="true" />
                 </Button>
               </div>
             </div>

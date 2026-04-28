@@ -1,10 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AllocationEditor } from "@/components/finance/allocation-editor";
 import { SummaryCards } from "@/components/finance/summary-cards";
+import { ThemeToggle } from "@/components/finance/theme-toggle";
 import {
   calculateAllocationTotals,
   calculateRemainingIncome,
@@ -17,6 +19,19 @@ import type { AllocationCategory, FinancialPlan } from "@/types/finance";
 type FinanceDashboardProps = {
   initialPlan: FinancialPlan;
 };
+
+const AllocationChart = dynamic(
+  () =>
+    import("@/components/finance/allocation-chart").then(
+      (module) => module.AllocationChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 rounded-lg border border-[var(--border)] bg-[var(--card)]" />
+    ),
+  },
+);
 
 export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [netIncome, setNetIncome] = useState(initialPlan.profile.netIncome);
@@ -51,14 +66,19 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">
+          <h1 className="text-2xl font-semibold text-[var(--foreground)] sm:text-3xl">
             Personal Finance Planner
           </h1>
-          <p className="max-w-3xl text-sm text-slate-600">
+          <p className="max-w-3xl text-sm text-[var(--muted-foreground)]">
             Dashboard สำหรับวางแผนรายได้ ค่าใช้จ่าย การออม และการลงทุนรายเดือน
           </p>
         </div>
-        <Badge className="w-fit bg-teal-100 text-teal-900">Phase 3 Allocation</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
+            Phase 4 Visualization
+          </Badge>
+          <ThemeToggle />
+        </div>
       </header>
 
       <SummaryCards netIncome={netIncome} remaining={remaining} totals={totals} />
@@ -79,6 +99,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           </AlertDescription>
         </Alert>
       )}
+
+      <AllocationChart allocations={normalizedAllocations} />
 
       <AllocationEditor
         allocations={normalizedAllocations}

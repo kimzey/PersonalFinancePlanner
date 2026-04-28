@@ -53,12 +53,18 @@ export function SummaryCards({ netIncome, totals, remaining }: SummaryCardsProps
         return (
           <Card className={cardClasses[index]} key={item.title}>
             <CardHeader className="flex-row items-center justify-between gap-3 pb-3">
-              <CardTitle className="text-sm text-slate-600">{item.title}</CardTitle>
-              <Icon className="h-5 w-5 text-slate-500" aria-hidden="true" />
+              <CardTitle className="text-sm text-[var(--muted-foreground)]">
+                {item.title}
+              </CardTitle>
+              <Icon className="h-5 w-5 text-[var(--muted-foreground)]" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold text-slate-950">{item.value}</div>
-              <p className="mt-1 text-sm text-slate-500">{item.detail}</p>
+              <div className="text-2xl font-semibold text-[var(--foreground)]">
+                {item.value}
+              </div>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                {item.detail}
+              </p>
             </CardContent>
           </Card>
         );

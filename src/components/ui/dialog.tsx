@@ -13,7 +13,7 @@ export function DialogContent({
   return (
     <div
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[var(--border)] bg-white p-5 shadow-lg",
+        "fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-lg",
         className,
       )}
       {...props}
