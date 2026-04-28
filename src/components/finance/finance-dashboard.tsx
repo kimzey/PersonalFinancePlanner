@@ -2,7 +2,19 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Save } from "lucide-react";
+import {
+  BarChart3,
+  Download,
+  Landmark,
+  LineChart,
+  PieChart,
+  ReceiptText,
+  RotateCcw,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
+  Target,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +22,9 @@ import { AllocationEditor } from "@/components/finance/allocation-editor";
 import { CashflowHealth } from "@/components/finance/cashflow-health";
 import { EmergencyFundPlanner } from "@/components/finance/emergency-fund-planner";
 import { ExportImportDialog } from "@/components/finance/export-import-dialog";
+import { DebtPlanner } from "@/components/finance/debt-planner";
+import { ExpenseTracker } from "@/components/finance/expense-tracker";
+import { FinancialGoals } from "@/components/finance/financial-goals";
 import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SummaryCards } from "@/components/finance/summary-cards";
@@ -28,6 +43,31 @@ import type { ScenarioPlan } from "@/lib/scenarios";
 type FinanceDashboardProps = {
   initialPlan: FinancialPlan;
 };
+
+type DashboardSection =
+  | "overview"
+  | "budget"
+  | "protection"
+  | "investing"
+  | "scenarios"
+  | "goals"
+  | "debts"
+  | "expenses";
+
+const dashboardSections: {
+  id: DashboardSection;
+  label: string;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+}[] = [
+  { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "budget", label: "Budget", icon: SlidersHorizontal },
+  { id: "protection", label: "Protection", icon: ShieldCheck },
+  { id: "investing", label: "Investing", icon: LineChart },
+  { id: "scenarios", label: "Scenarios", icon: PieChart },
+  { id: "goals", label: "Goals", icon: Target },
+  { id: "debts", label: "Debt", icon: Landmark },
+  { id: "expenses", label: "Expenses", icon: ReceiptText },
+];
 
 const AllocationChart = dynamic(
   () =>
@@ -67,6 +107,9 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [simulatorRevision, setSimulatorRevision] = useState(0);
+  const [goals, setGoals] = useState(initialPlan.goals);
+  const [debts, setDebts] = useState(initialPlan.debts);
+  const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
 
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
@@ -92,6 +135,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setNetIncome(defaultPlan.profile.netIncome);
     setAllocations(defaultPlan.allocations);
     setInvestmentScenario(defaultPlan.investmentScenarios[0]);
+    setGoals(defaultPlan.goals);
+    setDebts(defaultPlan.debts);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
@@ -110,6 +155,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setNetIncome(nextPlan.profile.netIncome);
     setAllocations(nextPlan.allocations);
     setInvestmentScenario(nextPlan.investmentScenarios[0]);
+    setGoals(nextPlan.goals);
+    setDebts(nextPlan.debts);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
 
@@ -121,13 +168,13 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       },
       allocations: normalizedAllocations,
       investmentScenarios: [investmentScenario],
-      goals: initialPlan.goals,
-      debts: initialPlan.debts,
+      goals,
+      debts,
       settings: initialPlan.settings,
     }),
     [
-      initialPlan.debts,
-      initialPlan.goals,
+      debts,
+      goals,
       initialPlan.schemaVersion,
       initialPlan.settings,
       investmentScenario,
@@ -178,7 +225,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 10 Persistence
+            Phase 11 Planning Tools
           </Badge>
           {lastSavedAt ? (
             <Badge className="w-fit bg-[var(--muted)] text-[var(--muted-foreground)]">
@@ -208,74 +255,129 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         open={importDialogOpen}
       />
 
-      <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
+      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <nav
+            aria-label="Dashboard sections"
+            className="hidden rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:grid lg:gap-1"
+          >
+            {dashboardSections.map((section) => (
+              <SectionButton
+                active={activeSection === section.id}
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                section={section}
+              />
+            ))}
+          </nav>
+          <nav
+            aria-label="Dashboard sections"
+            className="flex gap-2 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:hidden"
+          >
+            {dashboardSections.map((section) => (
+              <SectionButton
+                active={activeSection === section.id}
+                compact
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                section={section}
+              />
+            ))}
+          </nav>
+        </aside>
 
-      <SummaryCards netIncome={netIncome} remaining={remaining} totals={totals} />
+        <section className="grid min-w-0 gap-6">
+          {activeSection === "overview" ? (
+            <>
+              <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
+              <SummaryCards netIncome={netIncome} remaining={remaining} totals={totals} />
+              {isOverIncome ? (
+                <Alert variant="destructive">
+                  <AlertTitle>ยอดจัดสรรเกินรายได้</AlertTitle>
+                  <AlertDescription>
+                    แผนนี้เกินรายได้สุทธิอยู่ {formatCurrency(Math.abs(remaining))}
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert>
+                  <AlertTitle>แผนปัจจุบัน</AlertTitle>
+                  <AlertDescription>
+                    ยอดจัดสรรรวม {formatPercent(totals.percent)} และเงินเหลือ{" "}
+                    {formatCurrency(remaining)}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {storageMessage ? (
+                <Alert>
+                  <AlertTitle>Storage</AlertTitle>
+                  <AlertDescription>{storageMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              <AllocationChart allocations={normalizedAllocations} />
+            </>
+          ) : null}
 
-      {isOverIncome ? (
-        <Alert variant="destructive">
-          <AlertTitle>ยอดจัดสรรเกินรายได้</AlertTitle>
-          <AlertDescription>
-            แผนนี้เกินรายได้สุทธิอยู่ {formatCurrency(Math.abs(remaining))}
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <Alert>
-          <AlertTitle>แผนปัจจุบัน</AlertTitle>
-          <AlertDescription>
-            ยอดจัดสรรรวม {formatPercent(totals.percent)} และเงินเหลือ{" "}
-            {formatCurrency(remaining)}
-          </AlertDescription>
-        </Alert>
-      )}
+          {activeSection === "budget" ? (
+            <>
+              <AllocationEditor
+                allocations={normalizedAllocations}
+                netIncome={netIncome}
+                onAllocationsChange={handleAllocationsChange}
+                onNetIncomeChange={handleNetIncomeChange}
+                onReset={resetAllocations}
+              />
+              <Button onClick={resetAllocations} size="sm" type="button" variant="outline">
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reset allocation
+              </Button>
+            </>
+          ) : null}
 
-      {storageMessage ? (
-        <Alert>
-          <AlertTitle>Storage</AlertTitle>
-          <AlertDescription>{storageMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+          {activeSection === "protection" ? (
+            <div className="grid gap-6 xl:grid-cols-2">
+              <EmergencyFundPlanner
+                monthlyEssentialExpense={totals.essentialAmount}
+                monthlySaving={totals.savingsAmount}
+              />
+              <CashflowHealth netIncome={netIncome} remaining={remaining} totals={totals} />
+            </div>
+          ) : null}
 
-      <AllocationChart allocations={normalizedAllocations} />
+          {activeSection === "investing" ? (
+            <>
+              <InvestmentSimulator
+                key={simulatorRevision}
+                initialScenario={investmentScenario}
+                onScenarioChange={setInvestmentScenario}
+              />
+              <Button onClick={resetSimulator} size="sm" type="button" variant="outline">
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reset simulator
+              </Button>
+            </>
+          ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <EmergencyFundPlanner
-          monthlyEssentialExpense={totals.essentialAmount}
-          monthlySaving={totals.savingsAmount}
-        />
-        <CashflowHealth netIncome={netIncome} remaining={remaining} totals={totals} />
-      </div>
+          {activeSection === "scenarios" ? (
+            <ScenarioPlanner
+              allocations={normalizedAllocations}
+              importedScenarios={importedScenarios}
+              investmentScenario={investmentScenario}
+              netIncome={netIncome}
+            />
+          ) : null}
 
-      <InvestmentSimulator
-        key={simulatorRevision}
-        initialScenario={investmentScenario}
-        onScenarioChange={setInvestmentScenario}
-      />
+          {activeSection === "goals" ? (
+            <FinancialGoals goals={goals} onGoalsChange={setGoals} />
+          ) : null}
 
-      <ScenarioPlanner
-        allocations={normalizedAllocations}
-        importedScenarios={importedScenarios}
-        investmentScenario={investmentScenario}
-        netIncome={netIncome}
-      />
+          {activeSection === "debts" ? (
+            <DebtPlanner debts={debts} onDebtsChange={setDebts} />
+          ) : null}
 
-      <AllocationEditor
-        allocations={normalizedAllocations}
-        netIncome={netIncome}
-        onAllocationsChange={handleAllocationsChange}
-        onNetIncomeChange={handleNetIncomeChange}
-        onReset={resetAllocations}
-      />
-
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={resetAllocations} size="sm" type="button" variant="outline">
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset allocation
-        </Button>
-        <Button onClick={resetSimulator} size="sm" type="button" variant="outline">
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset simulator
-        </Button>
+          {activeSection === "expenses" ? (
+            <ExpenseTracker allocations={normalizedAllocations} />
+          ) : null}
+        </section>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--card)] px-4 py-3 shadow-lg md:hidden">
@@ -301,6 +403,35 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function SectionButton({
+  active,
+  compact = false,
+  onClick,
+  section,
+}: {
+  active: boolean;
+  compact?: boolean;
+  onClick: () => void;
+  section: (typeof dashboardSections)[number];
+}) {
+  const Icon = section.icon;
+
+  return (
+    <button
+      className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
+        active
+          ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+      } ${compact ? "min-w-fit" : "justify-start"}`}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className="h-4 w-4" aria-hidden />
+      {section.label}
+    </button>
   );
 }
 

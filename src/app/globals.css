@@ -68,3 +68,11 @@ select,
 textarea {
   font: inherit;
 }
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
