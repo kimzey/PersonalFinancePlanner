@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AllocationEditor } from "@/components/finance/allocation-editor";
+import { CashflowHealth } from "@/components/finance/cashflow-health";
+import { EmergencyFundPlanner } from "@/components/finance/emergency-fund-planner";
 import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { SummaryCards } from "@/components/finance/summary-cards";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
@@ -99,7 +101,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 6 Guided Input UX
+            Phase 7 Emergency Fund & Cashflow
           </Badge>
           <ThemeToggle />
         </div>
@@ -127,6 +129,14 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       )}
 
       <AllocationChart allocations={normalizedAllocations} />
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <EmergencyFundPlanner
+          monthlyEssentialExpense={totals.essentialAmount}
+          monthlySaving={totals.savingsAmount}
+        />
+        <CashflowHealth netIncome={netIncome} remaining={remaining} totals={totals} />
+      </div>
 
       <InvestmentSimulator initialScenario={investmentScenario} />
 

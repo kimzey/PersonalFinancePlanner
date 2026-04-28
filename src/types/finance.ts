@@ -69,6 +69,28 @@ export type AllocationTotals = {
   savingsAmount: number;
   investmentAmount: number;
   fixedAmount: number;
+  essentialAmount: number;
+};
+
+export type CashflowHealthStatus = "ดี" | "ตึง" | "เสี่ยง";
+
+export type CashflowHealth = {
+  status: CashflowHealthStatus;
+  savingsRate: number;
+  investmentRate: number;
+  fixedCostRatio: number;
+  warnings: string[];
+};
+
+export type EmergencyFundPlan = {
+  monthlyEssentialExpense: number;
+  currentAmount: number;
+  targetMonths: number;
+  targetAmount: number;
+  remainingAmount: number;
+  monthlySaving: number;
+  monthsToTarget: number | null;
+  progressPercent: number;
 };
 
 export type InvestmentProjectionPoint = {

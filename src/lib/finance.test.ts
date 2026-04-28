@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   amountToPercent,
+  assessCashflowHealth,
   calculateAllocationTotals,
   calculateDcaFutureValue,
+  calculateEmergencyFundPlan,
   calculateRemainingIncome,
   calculateYearlyInvestmentProjection,
   percentToAmount,
@@ -25,7 +27,51 @@ describe("finance calculations", () => {
 
     expect(totals.amount).toBe(38_425);
     expect(totals.percent).toBeCloseTo(100, 4);
+    expect(totals.essentialAmount).toBe(20_843);
     expect(calculateRemainingIncome(DEFAULT_NET_INCOME, totals.amount)).toBe(0);
+  });
+
+  it("calculates emergency fund target and months to target", () => {
+    const plan = calculateEmergencyFundPlan({
+      currentAmount: 10_000,
+      monthlyEssentialExpense: 20_000,
+      monthlySaving: 5_000,
+      targetMonths: 6,
+    });
+
+    expect(plan.targetAmount).toBe(120_000);
+    expect(plan.remainingAmount).toBe(110_000);
+    expect(plan.monthsToTarget).toBe(22);
+    expect(plan.progressPercent).toBeCloseTo(8.33, 2);
+  });
+
+  it("returns no target month estimate when monthly saving is zero", () => {
+    const plan = calculateEmergencyFundPlan({
+      currentAmount: 0,
+      monthlyEssentialExpense: 10_000,
+      monthlySaving: 0,
+      targetMonths: 3,
+    });
+
+    expect(plan.monthsToTarget).toBeNull();
+  });
+
+  it("assesses cashflow health with rule-based warnings", () => {
+    const allocations = createDefaultAllocations();
+    const totals = calculateAllocationTotals(allocations);
+    const health = assessCashflowHealth({
+      netIncome: DEFAULT_NET_INCOME,
+      totals,
+      remaining: calculateRemainingIncome(DEFAULT_NET_INCOME, totals.amount),
+    });
+
+    expect(health.status).toBe("ตึง");
+    expect(health.savingsRate).toBeCloseTo(13.01, 2);
+    expect(health.investmentRate).toBeCloseTo(20.82, 2);
+    expect(health.fixedCostRatio).toBeCloseTo(54.24, 2);
+    expect(health.warnings).toContain(
+      "แผนลงทุนหนักกว่าเงินออมและเงินเหลือ ควรตรวจสภาพคล่องก่อน",
+    );
   });
 
   it("calculates DCA future value with monthly end-of-period contribution", () => {
