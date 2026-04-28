@@ -14,20 +14,20 @@ import { createDefaultAllocations, DEFAULT_NET_INCOME } from "@/lib/default-plan
 
 describe("finance calculations", () => {
   it("converts amount to percent from net income", () => {
-    expect(amountToPercent(8_000, DEFAULT_NET_INCOME)).toBeCloseTo(20.82, 2);
+    expect(amountToPercent(10_000, DEFAULT_NET_INCOME)).toBeCloseTo(20, 2);
   });
 
   it("converts percent to amount from net income", () => {
-    expect(percentToAmount(10, DEFAULT_NET_INCOME)).toBeCloseTo(3_842.5, 1);
+    expect(percentToAmount(10, DEFAULT_NET_INCOME)).toBeCloseTo(5_000, 1);
   });
 
   it("calculates default allocation totals and remaining income", () => {
     const allocations = createDefaultAllocations();
     const totals = calculateAllocationTotals(allocations);
 
-    expect(totals.amount).toBe(38_425);
+    expect(totals.amount).toBe(50_000);
     expect(totals.percent).toBeCloseTo(100, 4);
-    expect(totals.essentialAmount).toBe(20_843);
+    expect(totals.essentialAmount).toBe(25_000);
     expect(calculateRemainingIncome(DEFAULT_NET_INCOME, totals.amount)).toBe(0);
   });
 
@@ -65,13 +65,11 @@ describe("finance calculations", () => {
       remaining: calculateRemainingIncome(DEFAULT_NET_INCOME, totals.amount),
     });
 
-    expect(health.status).toBe("ตึง");
-    expect(health.savingsRate).toBeCloseTo(13.01, 2);
-    expect(health.investmentRate).toBeCloseTo(20.82, 2);
-    expect(health.fixedCostRatio).toBeCloseTo(54.24, 2);
-    expect(health.warnings).toContain(
-      "แผนลงทุนหนักกว่าเงินออมและเงินเหลือ ควรตรวจสภาพคล่องก่อน",
-    );
+    expect(health.status).toBe("ดี");
+    expect(health.savingsRate).toBeCloseTo(20, 2);
+    expect(health.investmentRate).toBeCloseTo(15, 2);
+    expect(health.fixedCostRatio).toBeCloseTo(50, 2);
+    expect(health.warnings).toHaveLength(0);
   });
 
   it("calculates DCA future value with monthly end-of-period contribution", () => {

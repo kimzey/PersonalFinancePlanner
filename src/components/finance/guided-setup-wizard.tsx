@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,8 @@ const stepLabels = ["Template", "Income", "Preview"];
 export function GuidedSetupWizard({ netIncome, onApplyPlan }: GuidedSetupWizardProps) {
   const [step, setStep] = useState(0);
   const [draftIncome, setDraftIncome] = useState(netIncome);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<PlanTemplateId>("current");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<PlanTemplateId>("starter");
+  const shouldReduceMotion = useReducedMotion();
   const templates = useMemo(() => getPlanTemplates(draftIncome), [draftIncome]);
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ?? templates[0];
@@ -70,11 +72,19 @@ export function GuidedSetupWizard({ netIncome, onApplyPlan }: GuidedSetupWizardP
       </CardHeader>
 
       <CardContent className="grid gap-4">
+        <AnimatePresence mode="wait">
         {step === 0 ? (
-          <div className="grid gap-3 md:grid-cols-5">
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="grid gap-3 md:grid-cols-5"
+            exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            key="template"
+            transition={{ duration: 0.18 }}
+          >
             {templates.map((template) => (
               <button
-                className={`rounded-lg border p-3 text-left transition-colors ${
+                className={`rounded-lg border p-3 text-left transition-all hover:-translate-y-0.5 ${
                   selectedTemplate.id === template.id
                     ? "border-[var(--primary)] bg-[var(--success-soft)]"
                     : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]"
@@ -91,11 +101,18 @@ export function GuidedSetupWizard({ netIncome, onApplyPlan }: GuidedSetupWizardP
                 </span>
               </button>
             ))}
-          </div>
+          </motion.div>
         ) : null}
 
         {step === 1 ? (
-          <div className="grid gap-3 sm:max-w-sm">
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="grid gap-3 sm:max-w-sm"
+            exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            key="income"
+            transition={{ duration: 0.18 }}
+          >
             <label
               className="text-sm font-medium text-[var(--foreground)]"
               htmlFor="wizard-net-income"
@@ -108,13 +125,20 @@ export function GuidedSetupWizard({ netIncome, onApplyPlan }: GuidedSetupWizardP
               value={draftIncome}
             />
             <p className="text-sm text-[var(--muted-foreground)]">
-              รองรับรูปแบบอย่าง `38,425`, `40k`, `38425*1.1`
+              รองรับรูปแบบอย่าง `50,000`, `40k`, `50000*1.1`
             </p>
-          </div>
+          </motion.div>
         ) : null}
 
         {step === 2 ? (
-          <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="grid gap-4 lg:grid-cols-[18rem_1fr]"
+            exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            key="preview"
+            transition={{ duration: 0.18 }}
+          >
             <div className="rounded-lg border border-[var(--border)] p-4">
               <p className="text-sm text-[var(--muted-foreground)]">Template</p>
               <h3 className="mt-1 text-lg font-semibold">{selectedTemplate.name}</h3>
@@ -145,8 +169,9 @@ export function GuidedSetupWizard({ netIncome, onApplyPlan }: GuidedSetupWizardP
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         ) : null}
+        </AnimatePresence>
 
         <div className="flex flex-col gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:justify-between">
           <Button

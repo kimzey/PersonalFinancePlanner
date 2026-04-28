@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { Banknote, Landmark, PiggyBank, WalletCards } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatPercent } from "@/lib/format";
@@ -17,6 +18,7 @@ const cardClasses = [
 ];
 
 export function SummaryCards({ netIncome, totals, remaining }: SummaryCardsProps) {
+  const shouldReduceMotion = useReducedMotion();
   const savingAndInvestment = totals.savingsAmount + totals.investmentAmount;
   const items = [
     {
@@ -51,7 +53,14 @@ export function SummaryCards({ netIncome, totals, remaining }: SummaryCardsProps
         const Icon = item.icon;
 
         return (
-          <Card className={cardClasses[index]} key={item.title}>
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            key={item.title}
+            transition={{ delay: shouldReduceMotion ? 0 : index * 0.04, duration: 0.18 }}
+            whileHover={shouldReduceMotion ? undefined : { y: -3 }}
+          >
+          <Card className={`${cardClasses[index]} h-full transition-shadow hover:shadow-md`}>
             <CardHeader className="flex-row items-center justify-between gap-3 pb-3">
               <CardTitle className="text-sm text-[var(--muted-foreground)]">
                 {item.title}
@@ -67,6 +76,7 @@ export function SummaryCards({ netIncome, totals, remaining }: SummaryCardsProps
               </p>
             </CardContent>
           </Card>
+          </motion.div>
         );
       })}
     </section>

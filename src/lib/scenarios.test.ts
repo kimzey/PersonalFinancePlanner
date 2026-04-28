@@ -15,8 +15,8 @@ describe("scenario planning", () => {
     const scenario = createScenarioFromPlan(createDefaultPlan());
     const result = evaluateScenario(scenario);
 
-    expect(scenario.netIncome).toBe(38_425);
-    expect(scenario.allocations).toHaveLength(6);
+    expect(scenario.netIncome).toBe(50_000);
+    expect(scenario.allocations).toHaveLength(5);
     expect(result.remaining).toBe(0);
     expect(result.futureValue).toBeGreaterThan(result.totalContribution);
   });
@@ -36,9 +36,9 @@ describe("scenario planning", () => {
     const investingAmount = getKindAmount(emergencyScenario.allocations, "investing");
     const savingsAmount = getKindAmount(emergencyScenario.allocations, "saving");
 
-    expect(investingAmount).toBe(5_600);
-    expect(savingsAmount).toBe(7_400);
-    expect(emergencyScenario.investmentScenario.monthlyContribution).toBe(5_600);
+    expect(investingAmount).toBe(5_250);
+    expect(savingsAmount).toBe(12_250);
+    expect(emergencyScenario.investmentScenario.monthlyContribution).toBe(5_250);
   });
 
   it("updates editable scenario assumptions", () => {

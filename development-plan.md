@@ -72,7 +72,7 @@
   - `FinancialGoal`
   - `DebtItem`
   - `ExportedFinanceData`
-- สร้าง default plan จาก Net Income 38,425 บาท
+- สร้าง default plan จาก Net Income 50,000 บาท
 - สร้าง utility format:
   - format เงินบาท
   - format เปอร์เซ็นต์
@@ -129,7 +129,7 @@
 
 ### Done When
 
-- เห็นแผนตั้งต้น Net Income 38,425 บาท
+- เห็นแผนตั้งต้น Net Income 50,000 บาท
 - summary cards คำนวณจากข้อมูลจริง
 - layout ไม่แตกบน mobile
 
@@ -159,7 +159,7 @@
 ### Done When
 
 - กรอก 8,000 บาทแล้วเห็น 20.8%
-- กรอก 10% แล้วคำนวณเป็น 3,843 บาทเมื่อ Net Income 38,425
+- กรอก 10% แล้วคำนวณเป็น 5,000 บาทเมื่อ Net Income 50,000
 - เพิ่ม/ลบ category แล้ว summary update ทันที
 - แจ้งเตือนเมื่อรวมเกิน 100%
 
@@ -227,7 +227,7 @@
 
 - สร้าง guided setup wizard
 - เพิ่ม quick start templates:
-  - Current Plan
+  - Starter Plan
   - 50/30/20
   - Aggressive Investor
   - Family Support
@@ -236,7 +236,7 @@
 - เพิ่ม inline calculator input:
   - `8k`
   - `1.5m`
-  - `38425*0.1`
+  - `50000*0.1`
   - `12000+3500`
 - เพิ่ม category autocomplete
 - เพิ่ม bulk paste dialog พร้อม preview

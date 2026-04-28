@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   BarChart3,
   Download,
@@ -110,6 +111,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [goals, setGoals] = useState(initialPlan.goals);
   const [debts, setDebts] = useState(initialPlan.debts);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+  const shouldReduceMotion = useReducedMotion();
 
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
@@ -287,6 +289,15 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </aside>
 
         <section className="grid min-w-0 gap-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              animate={{ opacity: 1, y: 0 }}
+              className="grid min-w-0 gap-6"
+              exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
+              key={activeSection}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
           {activeSection === "overview" ? (
             <>
               <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
@@ -377,6 +388,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           {activeSection === "expenses" ? (
             <ExpenseTracker allocations={normalizedAllocations} />
           ) : null}
+            </motion.div>
+          </AnimatePresence>
         </section>
       </div>
 
@@ -422,7 +435,7 @@ function SectionButton({
   return (
     <button
       aria-current={active ? "page" : undefined}
-      className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
+      className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all hover:-translate-y-0.5 active:scale-[0.97] ${
         active
           ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
           : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"

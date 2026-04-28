@@ -37,7 +37,7 @@ describe("export/import", () => {
     expect(exportData.allocations[0].name).toBe("หมวด 1");
     expect(exportData.allocations[0].note).toBeUndefined();
     expect(exportData.investmentScenarios[0].name).toBe("แผนลงทุน 1");
-    expect(JSON.stringify(exportData)).not.toContain("ค่าเทอมน้อง");
+    expect(JSON.stringify(exportData)).not.toContain("ที่อยู่อาศัย");
   });
 
   it("rejects wrong JSON and schema version", () => {

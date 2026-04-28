@@ -2,7 +2,7 @@ import { amountToPercent, normalizeAllocations } from "@/lib/finance";
 import type { AllocationCategory, AllocationKind, FinancialPlan } from "@/types/finance";
 
 export type PlanTemplateId =
-  | "current"
+  | "starter"
   | "fifty-thirty-twenty"
   | "aggressive-investor"
   | "family-support"
@@ -29,7 +29,7 @@ const templateColors: Record<AllocationKind, string> = {
 
 export function createPlanTemplate(
   id: PlanTemplateId,
-  netIncome = 38_425,
+  netIncome = 50_000,
 ): PlanTemplate {
   const allocationsByTemplate: Record<
     PlanTemplateId,
@@ -43,16 +43,15 @@ export function createPlanTemplate(
       }>;
     }
   > = {
-    current: {
-      name: "Current Plan",
-      description: "แผนตั้งต้นที่บาลานซ์ภาระครอบครัว การลงทุน และเงินฉุกเฉิน",
+    starter: {
+      name: "Starter Plan",
+      description: "แผนตั้งต้นกลางที่บาลานซ์ค่าใช้จ่าย เงินออม การลงทุน และไลฟ์สไตล์",
       items: [
-        { id: "family-support", name: "ให้ครอบครัว + ค่าเทอมน้อง", percent: 31.23, kind: "family", locked: true },
-        { id: "dca-qqqi", name: "ลงทุน DCA", percent: 20.82, kind: "investing" },
-        { id: "fixed-tech", name: "Fixed Tech", percent: 10, kind: "fixed" },
-        { id: "emergency-fund", name: "เงินออมฉุกเฉิน", percent: 13.01, kind: "saving" },
-        { id: "basic-expense", name: "ค่าใช้จ่ายพื้นฐาน", percent: 13.01, kind: "necessary" },
-        { id: "lifestyle", name: "Lifestyle", percent: 11.93, kind: "lifestyle" },
+        { id: "housing", name: "ที่อยู่อาศัย/บิล", percent: 30, kind: "fixed", locked: true },
+        { id: "daily", name: "ค่าใช้จ่ายประจำวัน", percent: 20, kind: "necessary" },
+        { id: "emergency-fund", name: "เงินออมฉุกเฉิน", percent: 20, kind: "saving" },
+        { id: "investing", name: "ลงทุนระยะยาว", percent: 15, kind: "investing" },
+        { id: "lifestyle", name: "ไลฟ์สไตล์/พัฒนาตัวเอง", percent: 15, kind: "lifestyle" },
       ],
     },
     "fifty-thirty-twenty": {
@@ -122,9 +121,9 @@ export function createPlanTemplate(
   };
 }
 
-export function getPlanTemplates(netIncome = 38_425): PlanTemplate[] {
+export function getPlanTemplates(netIncome = 50_000): PlanTemplate[] {
   return [
-    createPlanTemplate("current", netIncome),
+    createPlanTemplate("starter", netIncome),
     createPlanTemplate("fifty-thirty-twenty", netIncome),
     createPlanTemplate("aggressive-investor", netIncome),
     createPlanTemplate("family-support", netIncome),

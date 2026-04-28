@@ -7,7 +7,7 @@ describe("getPlanTemplates", () => {
     const templates = getPlanTemplates(40000);
 
     expect(templates.map((template) => template.name)).toEqual([
-      "Current Plan",
+      "Starter Plan",
       "50/30/20",
       "Aggressive Investor",
       "Family Support",

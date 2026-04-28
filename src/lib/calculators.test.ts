@@ -8,7 +8,7 @@ describe("parseCalculatorInput", () => {
   });
 
   it("evaluates arithmetic without eval", () => {
-    expect(parseCalculatorInput("38425*0.1")).toBe(3842.5);
+    expect(parseCalculatorInput("50000*0.1")).toBe(5000);
     expect(parseCalculatorInput("12000+3500")).toBe(15500);
     expect(parseCalculatorInput("(10k+2k)/3")).toBe(4000);
   });
