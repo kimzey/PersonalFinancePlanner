@@ -2,11 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AllocationEditor } from "@/components/finance/allocation-editor";
 import { CashflowHealth } from "@/components/finance/cashflow-health";
 import { EmergencyFundPlanner } from "@/components/finance/emergency-fund-planner";
+import { ExportImportDialog } from "@/components/finance/export-import-dialog";
 import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SummaryCards } from "@/components/finance/summary-cards";
@@ -19,6 +22,7 @@ import {
 import { createDefaultPlan } from "@/lib/default-plan";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { AllocationCategory, FinancialPlan } from "@/types/finance";
+import type { ScenarioPlan } from "@/lib/scenarios";
 
 type FinanceDashboardProps = {
   initialPlan: FinancialPlan;
@@ -56,6 +60,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [investmentScenario, setInvestmentScenario] = useState(
     initialPlan.investmentScenarios[0],
   );
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedScenarios, setImportedScenarios] = useState<ScenarioPlan[]>([]);
 
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
@@ -89,6 +95,29 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(nextPlan.investmentScenarios[0]);
   }
 
+  const currentPlan: FinancialPlan = useMemo(
+    () => ({
+      schemaVersion: initialPlan.schemaVersion,
+      profile: {
+        netIncome,
+      },
+      allocations: normalizedAllocations,
+      investmentScenarios: [investmentScenario],
+      goals: initialPlan.goals,
+      debts: initialPlan.debts,
+      settings: initialPlan.settings,
+    }),
+    [
+      initialPlan.debts,
+      initialPlan.goals,
+      initialPlan.schemaVersion,
+      initialPlan.settings,
+      investmentScenario,
+      netIncome,
+      normalizedAllocations,
+    ],
+  );
+
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-20 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -102,11 +131,25 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 8 Scenario Planning
+            Phase 9 Export / Import
           </Badge>
+          <Button onClick={() => setImportDialogOpen(true)} size="sm" type="button" variant="outline">
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export / Import
+          </Button>
           <ThemeToggle />
         </div>
       </header>
+
+      <ExportImportDialog
+        currentPlan={currentPlan}
+        onImportPlan={applyPlan}
+        onImportScenario={(scenario) =>
+          setImportedScenarios((currentScenarios) => [...currentScenarios, scenario])
+        }
+        onOpenChange={setImportDialogOpen}
+        open={importDialogOpen}
+      />
 
       <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
 
@@ -143,6 +186,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
 
       <ScenarioPlanner
         allocations={normalizedAllocations}
+        importedScenarios={importedScenarios}
         investmentScenario={investmentScenario}
         netIncome={netIncome}
       />

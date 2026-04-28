@@ -41,11 +41,13 @@ type ScenarioPlannerProps = {
   netIncome: number;
   allocations: AllocationCategory[];
   investmentScenario: InvestmentScenario;
+  importedScenarios?: ScenarioPlan[];
 };
 
 export function ScenarioPlanner({
   netIncome,
   allocations,
+  importedScenarios = [],
   investmentScenario,
 }: ScenarioPlannerProps) {
   const initialScenario = useMemo(
@@ -63,9 +65,10 @@ export function ScenarioPlanner({
     applyScenarioPreset(initialScenario, "emergency-focus"),
   ]);
   const [activeScenarioId, setActiveScenarioId] = useState(scenarios[0].id);
+  const comparisonScenarios = [...scenarios, ...importedScenarios];
   const activeScenario = scenarios.find((scenario) => scenario.id === activeScenarioId)
     ?? scenarios[0];
-  const scenarioResults = scenarios.map((scenario) => ({
+  const scenarioResults = comparisonScenarios.map((scenario) => ({
     scenario,
     result: evaluateScenario(scenario),
   }));
@@ -123,7 +126,7 @@ export function ScenarioPlanner({
             </CardDescription>
           </div>
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            {scenarios.length} scenarios
+            {comparisonScenarios.length} scenarios
           </Badge>
         </div>
         <div className="flex flex-wrap gap-2">
