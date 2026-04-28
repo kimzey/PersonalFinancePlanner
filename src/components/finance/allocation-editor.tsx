@@ -159,7 +159,7 @@ export function AllocationEditor({
       <CardHeader className="gap-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <CardTitle>จัดสรรเงินรายเดือน</CardTitle>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Button onClick={addAllocation} size="sm" type="button">
               <Plus className="h-4 w-4" aria-hidden="true" />
               เพิ่มหมวด
@@ -207,7 +207,7 @@ export function AllocationEditor({
           </AlertDescription>
         </Alert>
 
-        <div className="hidden grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] gap-3 px-1 text-xs font-medium text-[var(--muted-foreground)] lg:grid">
+        <div className="hidden grid-cols-[minmax(12rem,1.5fr)_8rem_9rem_minmax(6rem,0.8fr)_5rem_4rem] gap-3 px-1 text-xs font-medium text-[var(--muted-foreground)] xl:grid">
           <span>หมวดหมู่</span>
           <span>โหมด</span>
           <span>ค่าที่กรอก</span>
@@ -219,14 +219,14 @@ export function AllocationEditor({
         <div className="flex flex-col gap-3">
           {allocations.map((category, index) => (
             <div
-              className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 lg:grid-cols-[1.5fr_9rem_9rem_7rem_6rem_3rem] lg:items-center"
+              className="grid min-w-0 gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 xl:grid-cols-[minmax(12rem,1.5fr)_8rem_9rem_minmax(6rem,0.8fr)_5rem_4rem] xl:items-center"
               key={category.id}
             >
               <div className="grid gap-2">
-                <Label className="lg:hidden" htmlFor={`${category.id}-name`}>
+                <Label className="xl:hidden" htmlFor={`${category.id}-name`}>
                   หมวดหมู่
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
                     className="h-3 w-3 shrink-0 rounded-full"
                     style={{
@@ -246,7 +246,7 @@ export function AllocationEditor({
               </div>
 
               <div className="grid gap-2">
-                <Label className="lg:hidden" htmlFor={`${category.id}-mode`}>
+                <Label className="xl:hidden" htmlFor={`${category.id}-mode`}>
                   โหมด
                 </Label>
                 <Select
@@ -263,7 +263,7 @@ export function AllocationEditor({
               </div>
 
               <div className="grid gap-2">
-                <Label className="lg:hidden" htmlFor={`${category.id}-value`}>
+                <Label className="xl:hidden" htmlFor={`${category.id}-value`}>
                   ค่าที่กรอก
                 </Label>
                 <InlineCalculatorInput
@@ -281,19 +281,19 @@ export function AllocationEditor({
               </div>
 
               <div className="text-sm font-medium text-[var(--foreground)]">
-                <span className="mr-2 text-xs text-[var(--muted-foreground)] lg:hidden">
+                <span className="mr-2 text-xs text-[var(--muted-foreground)] xl:hidden">
                   บาท
                 </span>
                 {formatCurrency(category.amount)}
               </div>
               <div className="text-sm text-[var(--muted-foreground)]">
-                <span className="mr-2 text-xs text-[var(--muted-foreground)] lg:hidden">
+                <span className="mr-2 text-xs text-[var(--muted-foreground)] xl:hidden">
                   %
                 </span>
                 {formatPercent(category.percent)}
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:justify-end">
+              <div className="flex items-center justify-between gap-2 xl:justify-end">
                 <label className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
                   <Switch
                     checked={Boolean(category.locked)}

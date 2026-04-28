@@ -72,7 +72,7 @@ export function AllocationChart({ allocations }: AllocationChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-5 xl:grid-cols-[minmax(18rem,0.9fr)_1.1fr] xl:items-center">
+      <CardContent className="grid min-w-0 gap-5 xl:grid-cols-[minmax(16rem,0.9fr)_minmax(0,1.1fr)] xl:items-center">
         <div className="h-72 min-w-0 sm:h-80">
           {chartData.length > 0 ? (
             <ResponsiveContainer height="100%" width="100%">
@@ -82,7 +82,7 @@ export function AllocationChart({ allocations }: AllocationChartProps) {
                   data={chartData}
                   dataKey="value"
                   innerRadius="58%"
-                  isAnimationActive
+                  isAnimationActive={!prefersReducedMotion()}
                   nameKey="name"
                   outerRadius="88%"
                   paddingAngle={2}
@@ -106,14 +106,24 @@ export function AllocationChart({ allocations }: AllocationChartProps) {
           )}
         </div>
 
-        <div className="grid max-h-[22rem] gap-2 overflow-auto pr-1">
+        <div className="grid max-h-[22rem] min-w-0 gap-2 overflow-auto pr-1">
+          {allocations.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted-foreground)]">
+              ยังไม่มีรายการจัดสรรให้แสดง
+            </div>
+          ) : null}
           {allocations.map((category, index) => {
             const isHidden = hiddenIds.includes(category.id);
             const Icon = isHidden ? EyeOff : Eye;
 
             return (
               <button
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-left transition-colors hover:bg-[var(--muted)]"
+                aria-pressed={!isHidden}
+                className={`grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-[var(--muted)] ${
+                  isHidden
+                    ? "border-[var(--border)] bg-[var(--muted)] opacity-60"
+                    : "border-[var(--primary)] bg-[var(--card)]"
+                }`}
                 key={category.id}
                 onClick={() => toggleCategory(category.id)}
                 type="button"
@@ -129,7 +139,7 @@ export function AllocationChart({ allocations }: AllocationChartProps) {
                   <span className="block truncate text-sm font-medium text-[var(--foreground)]">
                     {category.name}
                   </span>
-                  <span className="text-xs text-[var(--muted-foreground)]">
+                  <span className="block truncate text-xs text-[var(--muted-foreground)]">
                     {formatCurrency(category.amount)} · {formatPercent(category.percent)}
                   </span>
                 </span>
@@ -140,13 +150,24 @@ export function AllocationChart({ allocations }: AllocationChartProps) {
               </button>
             );
           })}
-          <Button onClick={() => setHiddenIds([])} size="sm" type="button" variant="secondary">
+          <Button
+            disabled={hiddenIds.length === 0}
+            onClick={() => setHiddenIds([])}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
             แสดงทุกหมวด
           </Button>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function AllocationTooltip({ active, payload }: AllocationTooltipProps) {

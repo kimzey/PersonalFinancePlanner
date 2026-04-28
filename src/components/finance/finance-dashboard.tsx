@@ -213,7 +213,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   }, [currentPlan, storageReady]);
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-20 md:pb-0">
+    <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-6 pb-24 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold text-[var(--foreground)] sm:text-3xl">
@@ -225,7 +225,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 11 Planning Tools
+            Phase 12 QA Polish
           </Badge>
           {lastSavedAt ? (
             <Badge className="w-fit bg-[var(--muted)] text-[var(--muted-foreground)]">
@@ -255,7 +255,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         open={importDialogOpen}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <nav
             aria-label="Dashboard sections"
@@ -272,7 +272,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           </nav>
           <nav
             aria-label="Dashboard sections"
-            className="flex gap-2 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:hidden"
+            className="flex max-w-[calc(100vw-2rem)] gap-2 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:hidden"
           >
             {dashboardSections.map((section) => (
               <SectionButton
@@ -421,6 +421,7 @@ function SectionButton({
 
   return (
     <button
+      aria-current={active ? "page" : undefined}
       className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
         active
           ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
