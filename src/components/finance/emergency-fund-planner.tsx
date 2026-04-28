@@ -59,8 +59,8 @@ export function EmergencyFundPlanner({
         </div>
       </CardHeader>
       <CardContent className="grid gap-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,0.8fr)_1.2fr]">
-          <div className="grid gap-4 rounded-lg border border-[var(--border)] p-4">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(14rem,0.75fr)_minmax(0,1.25fr)]">
+          <div className="grid min-w-0 gap-4 rounded-lg border border-[var(--border)] p-4">
             <div className="grid gap-2">
               <Label htmlFor="current-emergency-fund">เงินฉุกเฉินปัจจุบัน</Label>
               <Input
@@ -75,7 +75,7 @@ export function EmergencyFundPlanner({
 
             <div className="grid gap-2">
               <Label>เป้าหมาย</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
                 {targetMonthOptions.map((option) => (
                   <Button
                     key={option}
@@ -91,14 +91,14 @@ export function EmergencyFundPlanner({
             </div>
           </div>
 
-          <div className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid min-w-0 gap-4">
+            <div className="grid min-w-0 gap-3 md:grid-cols-3">
               <Metric label="ค่าใช้จ่ายจำเป็น" value={formatCurrency(plan.monthlyEssentialExpense)} />
               <Metric label="เป้าหมายเงินฉุกเฉิน" value={formatCurrency(plan.targetAmount)} />
               <Metric label="เวลาถึงเป้า" value={monthText} />
             </div>
 
-            <div className="rounded-lg border border-[var(--border)] p-4">
+            <div className="min-w-0 rounded-lg border border-[var(--border)] p-4">
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="font-medium">ความคืบหน้า</span>
                 <span className="text-[var(--muted-foreground)]">
@@ -125,9 +125,11 @@ export function EmergencyFundPlanner({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] p-4">
+    <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-4">
       <div className="text-sm text-[var(--muted-foreground)]">{label}</div>
-      <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">{value}</div>
+      <div className="mt-2 text-lg font-semibold text-[var(--foreground)] sm:text-xl">
+        {value}
+      </div>
     </div>
   );
 }
