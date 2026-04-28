@@ -8,6 +8,7 @@ import { AllocationEditor } from "@/components/finance/allocation-editor";
 import { CashflowHealth } from "@/components/finance/cashflow-health";
 import { EmergencyFundPlanner } from "@/components/finance/emergency-fund-planner";
 import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
+import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SummaryCards } from "@/components/finance/summary-cards";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
 import {
@@ -101,7 +102,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="w-fit bg-[var(--success-soft)] text-[var(--success-soft-foreground)]">
-            Phase 7 Emergency Fund & Cashflow
+            Phase 8 Scenario Planning
           </Badge>
           <ThemeToggle />
         </div>
@@ -139,6 +140,12 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       </div>
 
       <InvestmentSimulator initialScenario={investmentScenario} />
+
+      <ScenarioPlanner
+        allocations={normalizedAllocations}
+        investmentScenario={investmentScenario}
+        netIncome={netIncome}
+      />
 
       <AllocationEditor
         allocations={normalizedAllocations}
