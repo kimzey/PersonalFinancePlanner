@@ -20,6 +20,7 @@ import {
   SlidersHorizontal,
   Target,
   Trash2,
+  X,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +139,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [debts, setDebts] = useState(initialPlan.debts);
   const [settings, setSettings] = useState(initialPlan.settings);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [planProfiles, setPlanProfiles] = useState<StoredFinancePlan[]>([
     initialPlanProfile,
   ]);
@@ -382,6 +384,11 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setStorageMessage(null);
   }
 
+  function runQuickAction(action: () => void) {
+    action();
+    setActionMenuOpen(false);
+  }
+
   return (
     <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-6 pb-24 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -440,6 +447,17 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           <AlertDescription>{actionMessage}</AlertDescription>
         </Alert>
       ) : null}
+
+      <FloatingActionMenu
+        onCreateBudget={() => runQuickAction(() => setActiveSection("budget"))}
+        onCreatePlan={() => runQuickAction(createNewPlan)}
+        onExportImport={() => runQuickAction(() => setImportDialogOpen(true))}
+        onOpenInvesting={() => runQuickAction(() => setActiveSection("investing"))}
+        onOpenSettings={() => runQuickAction(() => setActiveSection("settings"))}
+        open={actionMenuOpen}
+        onOpenChange={setActionMenuOpen}
+        reduceMotion={Boolean(shouldReduceMotion)}
+      />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
@@ -692,6 +710,97 @@ function PlanProfileBar({
         </Button>
       </div>
     </section>
+  );
+}
+
+function FloatingActionMenu({
+  onCreateBudget,
+  onCreatePlan,
+  onExportImport,
+  onOpenChange,
+  onOpenInvesting,
+  onOpenSettings,
+  open,
+  reduceMotion,
+}: {
+  onCreateBudget: () => void;
+  onCreatePlan: () => void;
+  onExportImport: () => void;
+  onOpenChange: (open: boolean) => void;
+  onOpenInvesting: () => void;
+  onOpenSettings: () => void;
+  open: boolean;
+  reduceMotion: boolean;
+}) {
+  const actions = [
+    {
+      label: "Create budget",
+      icon: SlidersHorizontal,
+      onClick: onCreateBudget,
+    },
+    {
+      label: "Open investing",
+      icon: LineChart,
+      onClick: onOpenInvesting,
+    },
+    {
+      label: "New plan",
+      icon: Plus,
+      onClick: onCreatePlan,
+    },
+    {
+      label: "Export / Import",
+      icon: Download,
+      onClick: onExportImport,
+    },
+    {
+      label: "Settings",
+      icon: Settings,
+      onClick: onOpenSettings,
+    },
+  ];
+  const MainIcon = open ? X : Plus;
+
+  return (
+    <div className="fixed bottom-28 right-4 z-50 grid justify-items-end gap-3 md:bottom-6 md:right-6">
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 shadow-xl"
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            {actions.map((action) => {
+              const Icon = action.icon;
+
+              return (
+                <button
+                  className="inline-flex min-w-48 items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
+                  key={action.label}
+                  onClick={action.onClick}
+                  type="button"
+                >
+                  <Icon className="h-4 w-4 text-[var(--muted-foreground)]" aria-hidden />
+                  {action.label}
+                </button>
+              );
+            })}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <button
+        aria-expanded={open}
+        aria-label={open ? "Close quick actions" : "Open quick actions"}
+        className="grid h-14 w-14 place-items-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] shadow-xl transition-transform hover:-translate-y-0.5 active:scale-95"
+        onClick={() => onOpenChange(!open)}
+        type="button"
+      >
+        <MainIcon className="h-6 w-6" aria-hidden />
+      </button>
+    </div>
   );
 }
 

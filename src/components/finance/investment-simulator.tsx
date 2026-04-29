@@ -384,10 +384,12 @@ function DividendIncomePlanner({
             </div>
             <Slider
               id="dividend-yield"
-              max={12}
+              max={100}
               min={0}
               onChange={(event) =>
-                onAnnualDividendYieldPercentChange(Math.max(0, Number(event.target.value)))
+                onAnnualDividendYieldPercentChange(
+                  Math.min(100, Math.max(0, Number(event.target.value))),
+                )
               }
               step={0.25}
               value={dividendPlan.annualDividendYieldPercent}
@@ -403,7 +405,7 @@ function DividendIncomePlanner({
             </div>
             <Slider
               id="withholding-tax"
-              max={20}
+              max={100}
               min={0}
               onChange={(event) =>
                 onWithholdingTaxPercentChange(
