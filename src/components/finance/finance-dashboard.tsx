@@ -13,6 +13,7 @@ import {
   LineChart,
   PieChart,
   Plus,
+  Route,
   ReceiptText,
   RotateCcw,
   Save,
@@ -36,6 +37,7 @@ import { ExportImportDialog } from "@/components/finance/export-import-dialog";
 import { DebtPlanner } from "@/components/finance/debt-planner";
 import { ExpenseTracker } from "@/components/finance/expense-tracker";
 import { FinancialGoals } from "@/components/finance/financial-goals";
+import { LifetimeWealthExplorer } from "@/components/finance/lifetime-wealth-explorer";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SettingsPanel } from "@/components/finance/settings-panel";
 import { SummaryCards } from "@/components/finance/summary-cards";
@@ -73,6 +75,7 @@ type QuickAction = {
 
 type DashboardSection =
   | "overview"
+  | "lifetime"
   | "budget"
   | "protection"
   | "investing"
@@ -90,6 +93,7 @@ const dashboardSections: {
   betaFeature?: keyof FinancialPlan["settings"]["betaFeatures"];
 }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "lifetime", label: "Lifetime", icon: Route },
   { id: "budget", label: "Budget", icon: SlidersHorizontal },
   { id: "protection", label: "Protection", icon: ShieldCheck, betaFeature: "protection" },
   { id: "investing", label: "Investing", icon: LineChart },
@@ -149,6 +153,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [simulatorRevision, setSimulatorRevision] = useState(0);
   const [goals, setGoals] = useState(initialPlan.goals);
   const [debts, setDebts] = useState(initialPlan.debts);
+  const [lifetimeLedger, setLifetimeLedger] = useState(initialPlan.lifetimeLedger);
   const [settings, setSettings] = useState(initialPlan.settings);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
@@ -194,6 +199,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(defaultPlan.investmentScenarios[0]);
     setGoals(defaultPlan.goals);
     setDebts(defaultPlan.debts);
+    setLifetimeLedger(defaultPlan.lifetimeLedger);
     setSettings(defaultPlan.settings);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
@@ -215,6 +221,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setInvestmentScenario(nextPlan.investmentScenarios[0]);
     setGoals(nextPlan.goals);
     setDebts(nextPlan.debts);
+    setLifetimeLedger(nextPlan.lifetimeLedger);
     setSettings(nextPlan.settings);
     setSimulatorRevision((currentRevision) => currentRevision + 1);
   }
@@ -229,12 +236,14 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       investmentScenarios: [investmentScenario],
       goals,
       debts,
+      lifetimeLedger,
       settings,
     }),
     [
       debts,
       goals,
       investmentScenario,
+      lifetimeLedger,
       netIncome,
       normalizedAllocations,
       settings,
@@ -249,7 +258,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       currentSection?.betaFeature &&
       !settings.betaFeatures[currentSection.betaFeature]
     ) {
-      setActiveSection("overview");
+      queueMicrotask(() => setActiveSection("overview"));
     }
   }, [activeSection, settings.betaFeatures]);
 
@@ -429,9 +438,18 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setDebts((currentDebts) => [...currentDebts, nextDebt]);
   }
 
-  const quickActions = useMemo<QuickAction[]>(() => {
+  const quickActions: QuickAction[] = (() => {
     switch (activeSection) {
       case "overview":
+        return [
+          { label: "New plan", icon: Plus, onClick: createNewPlan },
+          {
+            label: "Export / Import",
+            icon: Download,
+            onClick: () => setImportDialogOpen(true),
+          },
+        ];
+      case "lifetime":
         return [
           { label: "New plan", icon: Plus, onClick: createNewPlan },
           {
@@ -489,15 +507,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       default:
         return [];
     }
-  }, [
-    activeSection,
-    debts.length,
-    goals.length,
-    importedScenarios.length,
-    currentPlan,
-    planProfiles.length,
-    activePlanId,
-  ]);
+  })();
 
   return (
     <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-6 pb-24 md:pb-0">
@@ -638,6 +648,15 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
               ) : null}
               <AllocationChart allocations={normalizedAllocations} />
             </>
+          ) : null}
+
+          {activeSection === "lifetime" ? (
+            <LifetimeWealthExplorer
+              allocations={normalizedAllocations}
+              ledger={lifetimeLedger}
+              netIncome={netIncome}
+              onLedgerChange={setLifetimeLedger}
+            />
           ) : null}
 
           {activeSection === "budget" ? (

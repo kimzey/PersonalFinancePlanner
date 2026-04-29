@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import {
   Table,
@@ -360,14 +361,12 @@ function NumberField({
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <NumberInput
         id={id}
-        inputMode="decimal"
         min={min}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onValueChange={onChange}
         step={step}
-        type="number"
-        value={roundInput(value)}
+        value={value}
       />
     </div>
   );
@@ -392,8 +391,4 @@ function getHealthBadgeClass(status: string) {
   }
 
   return "bg-[var(--muted)] text-[var(--foreground)]";
-}
-
-function roundInput(value: number) {
-  return Number(value.toFixed(2));
 }

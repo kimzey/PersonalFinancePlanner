@@ -4,8 +4,8 @@ import { Calculator, ReceiptText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { calculateThaiPersonalIncomeTax } from "@/lib/tax";
 import { formatCurrency, formatPercent } from "@/lib/format";
 
@@ -144,13 +144,11 @@ function MoneyInput({
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <NumberInput
         id={id}
-        inputMode="decimal"
         min={0}
-        onChange={(event) => onChange(Number(event.target.value))}
-        type="number"
-        value={roundInput(value)}
+        onValueChange={onChange}
+        value={value}
       />
     </div>
   );
@@ -207,8 +205,4 @@ function formatBracketRange(from: number, to: number | null) {
   if (to === null) return `${formatCurrency(from)} ขึ้นไป`;
   if (from === 0) return `0 - ${formatCurrency(to)}`;
   return `${formatCurrency(from + 1)} - ${formatCurrency(to)}`;
-}
-
-function roundInput(value: number) {
-  return Number(value.toFixed(2));
 }

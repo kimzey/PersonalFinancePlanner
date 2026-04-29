@@ -59,6 +59,27 @@ export function createExportData(
       id: options.anonymize ? `debt-${index + 1}` : debt.id,
       name: options.anonymize ? `หนี้ ${index + 1}` : debt.name,
     })),
+    lifetimeLedger: {
+      ...plan.lifetimeLedger,
+      incomePeriods: plan.lifetimeLedger.incomePeriods.map((period, index) => ({
+        ...period,
+        id: options.anonymize ? `income-period-${index + 1}` : period.id,
+        label: options.anonymize ? `ช่วงรายได้ ${index + 1}` : period.label,
+      })),
+      spendingCategories: plan.lifetimeLedger.spendingCategories.map((category, index) => {
+        const nextCategory = {
+          ...category,
+          id: options.anonymize ? `lifetime-spending-${index + 1}` : category.id,
+          name: options.anonymize ? `หมวดใช้จ่าย ${index + 1}` : category.name,
+        };
+
+        if (!options.includeNotes || options.anonymize) {
+          delete nextCategory.note;
+        }
+
+        return nextCategory;
+      }),
+    },
     expenses: options.includeActualExpenses
       ? sanitizeExpenses([], options)
       : [],
@@ -103,6 +124,20 @@ export function mergeImportedPlan(
     ),
     goals: mergeById(currentPlan.goals, importedPlan.goals),
     debts: mergeById(currentPlan.debts, importedPlan.debts),
+    lifetimeLedger: {
+      ...currentPlan.lifetimeLedger,
+      currentAge: importedPlan.lifetimeLedger.currentAge,
+      targetAge: importedPlan.lifetimeLedger.targetAge,
+      startingAssets: importedPlan.lifetimeLedger.startingAssets,
+      incomePeriods: mergeById(
+        currentPlan.lifetimeLedger.incomePeriods,
+        importedPlan.lifetimeLedger.incomePeriods,
+      ),
+      spendingCategories: mergeById(
+        currentPlan.lifetimeLedger.spendingCategories,
+        importedPlan.lifetimeLedger.spendingCategories,
+      ),
+    },
     settings: {
       ...currentPlan.settings,
       ...importedPlan.settings,
@@ -122,6 +157,7 @@ export function toFinancialPlan(data: ExportedFinanceData): FinancialPlan {
       : createDefaultPlan(data.profile.netIncome).investmentScenarios,
     goals: data.goals,
     debts: data.debts,
+    lifetimeLedger: data.lifetimeLedger ?? createDefaultPlan(data.profile.netIncome).lifetimeLedger,
     settings: toPlanSettings(data.settings),
   };
 }

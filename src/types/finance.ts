@@ -55,6 +55,31 @@ export type DebtItem = {
   minimumPayment: number;
 };
 
+export type LifetimeIncomePeriod = {
+  id: string;
+  label: string;
+  startAge: number;
+  endAge: number;
+  monthlyIncome: number;
+  annualBonus: number;
+};
+
+export type LifetimeSpendingCategory = {
+  id: string;
+  name: string;
+  amount: number;
+  color: string;
+  note?: string;
+};
+
+export type LifetimeLedger = {
+  currentAge: number;
+  targetAge: number;
+  startingAssets: number;
+  incomePeriods: LifetimeIncomePeriod[];
+  spendingCategories: LifetimeSpendingCategory[];
+};
+
 export type BetaFeatureKey = "protection" | "scenarios" | "goals" | "debts" | "expenses";
 
 export type BetaFeatureSettings = Record<BetaFeatureKey, boolean>;
@@ -68,6 +93,7 @@ export type FinancialPlan = {
   investmentScenarios: InvestmentScenario[];
   goals: FinancialGoal[];
   debts: DebtItem[];
+  lifetimeLedger: LifetimeLedger;
   settings: {
     currency: "THB";
     locale: "th-TH";

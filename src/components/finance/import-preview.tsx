@@ -83,6 +83,8 @@ function SummaryGrid({ summary }: { summary: ImportPreviewSummary }) {
     ["Investment", summary.investmentScenarioCount.toLocaleString("th-TH")],
     ["Goals", summary.goalCount.toLocaleString("th-TH")],
     ["Debts", summary.debtCount.toLocaleString("th-TH")],
+    ["Life income", summary.lifetimeIncomePeriodCount.toLocaleString("th-TH")],
+    ["Life spend", summary.lifetimeSpendingCategoryCount.toLocaleString("th-TH")],
     ["Expenses", summary.expenseCount.toLocaleString("th-TH")],
     ["Reviews", summary.monthlyReviewCount.toLocaleString("th-TH")],
     ["Notes", summary.noteCount.toLocaleString("th-TH")],

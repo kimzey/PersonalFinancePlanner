@@ -1,4 +1,8 @@
-import { createDefaultPlan, createDefaultSettings } from "@/lib/default-plan";
+import {
+  createDefaultLifetimeLedger,
+  createDefaultPlan,
+  createDefaultSettings,
+} from "@/lib/default-plan";
 import { normalizeAllocations } from "@/lib/finance";
 import type { FinancialPlan } from "@/types/finance";
 
@@ -45,6 +49,7 @@ export function migrateFinancialPlan(input: unknown): MigrationResult {
       : createDefaultPlan(netIncome).investmentScenarios,
     goals: Array.isArray(input.goals) ? input.goals.filter(isGoalLike) : [],
     debts: Array.isArray(input.debts) ? input.debts.filter(isDebtLike) : [],
+    lifetimeLedger: toLifetimeLedger(input.lifetimeLedger, netIncome),
     settings: toPlanSettings(input.settings),
   };
 
@@ -55,6 +60,37 @@ export function migrateFinancialPlan(input: unknown): MigrationResult {
   return {
     plan,
     migrated: schemaVersion !== CURRENT_FINANCE_SCHEMA_VERSION,
+  };
+}
+
+function toLifetimeLedger(value: unknown, netIncome: number): FinancialPlan["lifetimeLedger"] {
+  const defaultLedger = createDefaultLifetimeLedger(netIncome);
+
+  if (!isRecord(value)) return defaultLedger;
+
+  const incomePeriods = Array.isArray(value.incomePeriods)
+    ? value.incomePeriods.filter(isLifetimeIncomePeriodLike)
+    : defaultLedger.incomePeriods;
+  const spendingCategories = Array.isArray(value.spendingCategories)
+    ? value.spendingCategories.filter(isLifetimeSpendingCategoryLike)
+    : defaultLedger.spendingCategories;
+
+  return {
+    currentAge:
+      typeof value.currentAge === "number" && Number.isFinite(value.currentAge)
+        ? Math.max(0, value.currentAge)
+        : defaultLedger.currentAge,
+    targetAge:
+      typeof value.targetAge === "number" && Number.isFinite(value.targetAge)
+        ? Math.max(0, value.targetAge)
+        : defaultLedger.targetAge,
+    startingAssets:
+      typeof value.startingAssets === "number" && Number.isFinite(value.startingAssets)
+        ? Math.max(0, value.startingAssets)
+        : defaultLedger.startingAssets,
+    incomePeriods: incomePeriods.length > 0 ? incomePeriods : defaultLedger.incomePeriods,
+    spendingCategories:
+      spendingCategories.length > 0 ? spendingCategories : defaultLedger.spendingCategories,
   };
 }
 
@@ -151,6 +187,33 @@ function isDebtLike(value: unknown): value is FinancialPlan["debts"][number] {
     typeof value.balance === "number" &&
     typeof value.annualInterestPercent === "number" &&
     typeof value.minimumPayment === "number"
+  );
+}
+
+function isLifetimeIncomePeriodLike(
+  value: unknown,
+): value is FinancialPlan["lifetimeLedger"]["incomePeriods"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.label === "string" &&
+    typeof value.startAge === "number" &&
+    typeof value.endAge === "number" &&
+    typeof value.monthlyIncome === "number" &&
+    typeof value.annualBonus === "number"
+  );
+}
+
+function isLifetimeSpendingCategoryLike(
+  value: unknown,
+): value is FinancialPlan["lifetimeLedger"]["spendingCategories"][number] {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.amount === "number" &&
+    typeof value.color === "string" &&
+    (value.note === undefined || typeof value.note === "string")
   );
 }
 

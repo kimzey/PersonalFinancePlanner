@@ -1,4 +1,4 @@
-import type { AllocationCategory, FinancialPlan } from "@/types/finance";
+import type { AllocationCategory, FinancialPlan, LifetimeLedger } from "@/types/finance";
 import { amountToPercent } from "@/lib/finance";
 
 export const DEFAULT_NET_INCOME = 50_000;
@@ -88,6 +88,75 @@ export function createDefaultAllocations(
   }));
 }
 
+export function createDefaultLifetimeLedger(netIncome = DEFAULT_NET_INCOME): LifetimeLedger {
+  const yearlyIncome = netIncome * 12;
+
+  return {
+    currentAge: 28,
+    targetAge: 65,
+    startingAssets: 0,
+    incomePeriods: [
+      {
+        id: "early-career",
+        label: "เริ่มทำงาน",
+        startAge: 22,
+        endAge: 27,
+        monthlyIncome: Math.round(netIncome * 0.65),
+        annualBonus: Math.round(yearlyIncome * 0.5),
+      },
+      {
+        id: "current-career",
+        label: "ช่วงปัจจุบัน",
+        startAge: 28,
+        endAge: 35,
+        monthlyIncome: netIncome,
+        annualBonus: yearlyIncome,
+      },
+      {
+        id: "growth-career",
+        label: "ช่วงเติบโต",
+        startAge: 36,
+        endAge: 50,
+        monthlyIncome: Math.round(netIncome * 1.6),
+        annualBonus: Math.round(yearlyIncome * 1.5),
+      },
+    ],
+    spendingCategories: [
+      {
+        id: "living-cost",
+        name: "ค่าครองชีพ",
+        amount: Math.round(yearlyIncome * 5.4),
+        color: "#dc2626",
+        note: "อาหาร เดินทาง ค่าเช่า และค่าใช้จ่ายจำเป็น",
+      },
+      {
+        id: "home-family",
+        name: "บ้านและครอบครัว",
+        amount: Math.round(yearlyIncome * 2.6),
+        color: "#2563eb",
+      },
+      {
+        id: "learning-health",
+        name: "เรียนรู้และสุขภาพ",
+        amount: Math.round(yearlyIncome * 0.9),
+        color: "#0891b2",
+      },
+      {
+        id: "travel-lifestyle",
+        name: "ท่องเที่ยวและไลฟ์สไตล์",
+        amount: Math.round(yearlyIncome * 1.1),
+        color: "#f59e0b",
+      },
+      {
+        id: "invested-saved",
+        name: "ออมและลงทุนแล้ว",
+        amount: Math.round(yearlyIncome * 2.2),
+        color: "#16a34a",
+      },
+    ],
+  };
+}
+
 export function createDefaultPlan(netIncome = DEFAULT_NET_INCOME): FinancialPlan {
   return {
     schemaVersion: 1,
@@ -107,6 +176,7 @@ export function createDefaultPlan(netIncome = DEFAULT_NET_INCOME): FinancialPlan
     ],
     goals: [],
     debts: [],
+    lifetimeLedger: createDefaultLifetimeLedger(netIncome),
     settings: createDefaultSettings(),
   };
 }

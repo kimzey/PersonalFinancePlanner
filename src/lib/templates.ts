@@ -1,5 +1,5 @@
 import { amountToPercent, normalizeAllocations } from "@/lib/finance";
-import { createDefaultSettings } from "@/lib/default-plan";
+import { createDefaultLifetimeLedger, createDefaultSettings } from "@/lib/default-plan";
 import type { AllocationCategory, AllocationKind, FinancialPlan } from "@/types/finance";
 
 export type PlanTemplateId =
@@ -156,6 +156,7 @@ export function createFinancialPlanFromTemplate(template: PlanTemplate): Financi
     ],
     goals: [],
     debts: [],
+    lifetimeLedger: createDefaultLifetimeLedger(template.netIncome),
     settings: createDefaultSettings(),
   };
 }

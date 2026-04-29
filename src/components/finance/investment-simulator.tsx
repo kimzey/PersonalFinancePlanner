@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { Slider } from "@/components/ui/slider";
 import {
   Table,
@@ -178,17 +179,14 @@ export function InvestmentSimulator({
           <div className="grid gap-4 rounded-lg border border-[var(--border)] p-4">
             <div className="grid gap-2">
               <Label htmlFor="initial-amount">เงินตั้งต้น</Label>
-              <Input
+              <NumberInput
                 id="initial-amount"
-                inputMode="decimal"
                 min={0}
-                onChange={(event) => {
-                  const nextValue = Number(event.target.value);
+                onValueChange={(nextValue) => {
                   setInitialAmount(nextValue);
                   updateScenario({ initialAmount: Math.max(0, nextValue) });
                 }}
-                type="number"
-                value={roundInput(safeInitialAmount)}
+                value={safeInitialAmount}
               />
             </div>
 
@@ -206,7 +204,7 @@ export function InvestmentSimulator({
               </div>
               <Slider
                 id="annual-return"
-                max={20}
+                max={100}
                 min={0}
                 onChange={(event) => {
                   const nextValue = Number(event.target.value);
@@ -570,7 +568,7 @@ function ContributionScheduleEditor({
                   updateStep(step.id, { startMonth: event.target.value })
                 }
                 onBlur={cleanUpDraftSteps}
-                type="number"
+                type="text"
                 value={step.startMonth}
               />
             </div>
@@ -586,7 +584,7 @@ function ContributionScheduleEditor({
                   })
                 }
                 onBlur={cleanUpDraftSteps}
-                type="number"
+                type="text"
                 value={step.monthlyContribution}
               />
             </div>

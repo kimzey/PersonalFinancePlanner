@@ -1,4 +1,5 @@
 import type { AllocationCategory, InvestmentScenario } from "@/types/finance";
+import { createDefaultLifetimeLedger } from "@/lib/default-plan";
 import {
   EXPORT_SCHEMA_VERSION,
   type ExportedFinanceData,
@@ -57,6 +58,26 @@ export function validateImportData(data: unknown): ImportValidationResult {
     });
   }
 
+  if (data.lifetimeLedger !== undefined && !isRecord(data.lifetimeLedger)) {
+    errors.push("lifetimeLedger ต้องเป็น object");
+  } else if (isRecord(data.lifetimeLedger)) {
+    if (!Array.isArray(data.lifetimeLedger.incomePeriods)) {
+      errors.push("lifetimeLedger.incomePeriods ต้องเป็น array");
+    } else {
+      data.lifetimeLedger.incomePeriods.forEach((period, index) => {
+        validateLifetimeIncomePeriod(period, index, errors);
+      });
+    }
+
+    if (!Array.isArray(data.lifetimeLedger.spendingCategories)) {
+      errors.push("lifetimeLedger.spendingCategories ต้องเป็น array");
+    } else {
+      data.lifetimeLedger.spendingCategories.forEach((category, index) => {
+        validateLifetimeSpendingCategory(category, index, errors);
+      });
+    }
+  }
+
   for (const key of ["goals", "debts", "expenses", "monthlyReviews"] as const) {
     if (!Array.isArray(data[key])) {
       errors.push(`${key} ต้องเป็น array`);
@@ -71,7 +92,16 @@ export function validateImportData(data: unknown): ImportValidationResult {
     return { ok: false, errors };
   }
 
-  const exportData = data as ExportedFinanceData;
+  const exportData = {
+    ...data,
+    lifetimeLedger: isRecord(data.lifetimeLedger)
+      ? data.lifetimeLedger
+      : createDefaultLifetimeLedger(
+          isRecord(data.profile) && isFiniteNumber(data.profile.netIncome)
+            ? data.profile.netIncome
+            : undefined,
+        ),
+  } as ExportedFinanceData;
   return {
     ok: true,
     data: exportData,
@@ -89,6 +119,8 @@ function summarizeImport(data: ExportedFinanceData): ImportPreviewSummary {
     investmentScenarioCount: data.investmentScenarios.length,
     goalCount: data.goals.length,
     debtCount: data.debts.length,
+    lifetimeIncomePeriodCount: data.lifetimeLedger.incomePeriods.length,
+    lifetimeSpendingCategoryCount: data.lifetimeLedger.spendingCategories.length,
     expenseCount: data.expenses.length,
     monthlyReviewCount: data.monthlyReviews.length,
     noteCount:
@@ -96,6 +128,50 @@ function summarizeImport(data: ExportedFinanceData): ImportPreviewSummary {
       + data.expenses.filter((expense) => Boolean(expense.note)).length
       + data.monthlyReviews.filter((review) => Boolean(review.note)).length,
   };
+}
+
+function validateLifetimeIncomePeriod(
+  period: unknown,
+  index: number,
+  errors: string[],
+) {
+  if (!isRecord(period)) {
+    errors.push(`lifetime income period #${index + 1} ต้องเป็น object`);
+    return;
+  }
+
+  for (const key of ["id", "label"] as const) {
+    if (typeof period[key] !== "string") {
+      errors.push(`lifetime income period #${index + 1}.${key} ต้องเป็นข้อความ`);
+    }
+  }
+
+  for (const key of ["startAge", "endAge", "monthlyIncome", "annualBonus"] as const) {
+    if (!isFiniteNumber(period[key])) {
+      errors.push(`lifetime income period #${index + 1}.${key} ต้องเป็นตัวเลข`);
+    }
+  }
+}
+
+function validateLifetimeSpendingCategory(
+  category: unknown,
+  index: number,
+  errors: string[],
+) {
+  if (!isRecord(category)) {
+    errors.push(`lifetime spending category #${index + 1} ต้องเป็น object`);
+    return;
+  }
+
+  for (const key of ["id", "name", "color"] as const) {
+    if (typeof category[key] !== "string") {
+      errors.push(`lifetime spending category #${index + 1}.${key} ต้องเป็นข้อความ`);
+    }
+  }
+
+  if (!isFiniteNumber(category.amount)) {
+    errors.push(`lifetime spending category #${index + 1}.amount ต้องเป็นตัวเลข`);
+  }
 }
 
 function createWarnings(data: ExportedFinanceData) {

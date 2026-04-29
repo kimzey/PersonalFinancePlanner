@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { calculateEmergencyFundPlan } from "@/lib/finance";
 import { formatCurrency, formatNumber } from "@/lib/format";
 
@@ -63,13 +63,11 @@ export function EmergencyFundPlanner({
           <div className="grid min-w-0 gap-4 rounded-lg border border-[var(--border)] p-4">
             <div className="grid gap-2">
               <Label htmlFor="current-emergency-fund">เงินฉุกเฉินปัจจุบัน</Label>
-              <Input
+              <NumberInput
                 id="current-emergency-fund"
-                inputMode="decimal"
                 min={0}
-                onChange={(event) => setCurrentAmount(Number(event.target.value))}
-                type="number"
-                value={roundInput(plan.currentAmount)}
+                onValueChange={setCurrentAmount}
+                value={plan.currentAmount}
               />
             </div>
 
@@ -132,8 +130,4 @@ function Metric({ label, value }: { label: string; value: string }) {
       </div>
     </div>
   );
-}
-
-function roundInput(value: number) {
-  return Number(value.toFixed(2));
 }

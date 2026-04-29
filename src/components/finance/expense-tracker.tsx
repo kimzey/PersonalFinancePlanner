@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { AllocationCategory } from "@/types/finance";
 
@@ -87,15 +87,11 @@ export function ExpenseTracker({ allocations }: ExpenseTrackerProps) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div className="grid gap-2 sm:w-64">
                     <Label htmlFor={`${allocation.id}-actual`}>{allocation.name}</Label>
-                    <Input
+                    <NumberInput
                       id={`${allocation.id}-actual`}
-                      inputMode="decimal"
                       min={0}
-                      onChange={(event) =>
-                        updateActualExpense(allocation.id, Number(event.target.value))
-                      }
-                      type="number"
-                      value={Number(actual.toFixed(2))}
+                      onValueChange={(value) => updateActualExpense(allocation.id, value)}
+                      value={actual}
                     />
                   </div>
                   <div className="text-sm text-[var(--muted-foreground)]">

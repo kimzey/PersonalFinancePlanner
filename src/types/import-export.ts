@@ -3,6 +3,7 @@ import type {
   DebtItem,
   FinancialGoal,
   InvestmentScenario,
+  LifetimeLedger,
 } from "@/types/finance";
 
 export const EXPORT_SCHEMA_VERSION = 1;
@@ -47,6 +48,7 @@ export type ExportedFinanceData = {
   investmentScenarios: InvestmentScenario[];
   goals: FinancialGoal[];
   debts: DebtItem[];
+  lifetimeLedger: LifetimeLedger;
   expenses: ImportedExpense[];
   monthlyReviews: MonthlyReview[];
   settings: Record<string, unknown>;
@@ -60,6 +62,8 @@ export type ImportPreviewSummary = {
   investmentScenarioCount: number;
   goalCount: number;
   debtCount: number;
+  lifetimeIncomePeriodCount: number;
+  lifetimeSpendingCategoryCount: number;
   expenseCount: number;
   monthlyReviewCount: number;
   noteCount: number;

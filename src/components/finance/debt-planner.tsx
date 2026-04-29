@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select } from "@/components/ui/select";
 import { createDebtPlanSummary, type DebtStrategy } from "@/lib/debt";
 import { formatCurrency, formatNumber } from "@/lib/format";
@@ -208,14 +209,13 @@ function NumberField({
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <NumberInput
         id={id}
-        inputMode="decimal"
         min={0}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onValueChange={onChange}
+        precision={2}
         step={step}
-        type="number"
-        value={Number(value.toFixed(2))}
+        value={value}
       />
     </div>
   );
