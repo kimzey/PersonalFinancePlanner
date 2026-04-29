@@ -1,4 +1,4 @@
-import { createDefaultPlan } from "@/lib/default-plan";
+import { createDefaultPlan, createDefaultSettings } from "@/lib/default-plan";
 import { amountToPercent, normalizeAllocations } from "@/lib/finance";
 import type { FinancialPlan } from "@/types/finance";
 import {
@@ -127,10 +127,39 @@ export function toFinancialPlan(data: ExportedFinanceData): FinancialPlan {
 }
 
 function toPlanSettings(settings: Record<string, unknown>): FinancialPlan["settings"] {
+  const defaultSettings = createDefaultSettings();
+  const betaFeatures = isRecord(settings.betaFeatures) ? settings.betaFeatures : {};
+
   return {
     currency: settings.currency === "THB" ? settings.currency : "THB",
     locale: settings.locale === "th-TH" ? settings.locale : "th-TH",
+    betaFeatures: {
+      protection:
+        typeof betaFeatures.protection === "boolean"
+          ? betaFeatures.protection
+          : defaultSettings.betaFeatures.protection,
+      scenarios:
+        typeof betaFeatures.scenarios === "boolean"
+          ? betaFeatures.scenarios
+          : defaultSettings.betaFeatures.scenarios,
+      goals:
+        typeof betaFeatures.goals === "boolean"
+          ? betaFeatures.goals
+          : defaultSettings.betaFeatures.goals,
+      debts:
+        typeof betaFeatures.debts === "boolean"
+          ? betaFeatures.debts
+          : defaultSettings.betaFeatures.debts,
+      expenses:
+        typeof betaFeatures.expenses === "boolean"
+          ? betaFeatures.expenses
+          : defaultSettings.betaFeatures.expenses,
+    },
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function mergeById<T extends { id: string }>(currentItems: T[], importedItems: T[]) {

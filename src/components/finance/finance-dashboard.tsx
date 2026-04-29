@@ -34,7 +34,6 @@ import { ExportImportDialog } from "@/components/finance/export-import-dialog";
 import { DebtPlanner } from "@/components/finance/debt-planner";
 import { ExpenseTracker } from "@/components/finance/expense-tracker";
 import { FinancialGoals } from "@/components/finance/financial-goals";
-import { GuidedSetupWizard } from "@/components/finance/guided-setup-wizard";
 import { ScenarioPlanner } from "@/components/finance/scenario-planner";
 import { SettingsPanel } from "@/components/finance/settings-panel";
 import { SummaryCards } from "@/components/finance/summary-cards";
@@ -75,15 +74,16 @@ const dashboardSections: {
   id: DashboardSection;
   label: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  betaFeature?: keyof FinancialPlan["settings"]["betaFeatures"];
 }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "budget", label: "Budget", icon: SlidersHorizontal },
-  { id: "protection", label: "Protection", icon: ShieldCheck },
+  { id: "protection", label: "Protection", icon: ShieldCheck, betaFeature: "protection" },
   { id: "investing", label: "Investing", icon: LineChart },
-  { id: "scenarios", label: "Scenarios", icon: PieChart },
-  { id: "goals", label: "Goals", icon: Target },
-  { id: "debts", label: "Debt", icon: Landmark },
-  { id: "expenses", label: "Expenses", icon: ReceiptText },
+  { id: "scenarios", label: "Scenarios", icon: PieChart, betaFeature: "scenarios" },
+  { id: "goals", label: "Goals", icon: Target, betaFeature: "goals" },
+  { id: "debts", label: "Debt", icon: Landmark, betaFeature: "debts" },
+  { id: "expenses", label: "Expenses", icon: ReceiptText, betaFeature: "expenses" },
   { id: "tax", label: "Tax", icon: Calculator },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -147,6 +147,13 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const normalizedAllocations = useMemo(
     () => normalizeAllocations(allocations, netIncome),
     [allocations, netIncome],
+  );
+  const visibleDashboardSections = useMemo(
+    () =>
+      dashboardSections.filter(
+        (section) => !section.betaFeature || settings.betaFeatures[section.betaFeature],
+      ),
+    [settings.betaFeatures],
   );
   const totals = calculateAllocationTotals(normalizedAllocations);
   const remaining = calculateRemainingIncome(netIncome, totals.amount);
@@ -217,6 +224,17 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       initialPlan.schemaVersion,
     ],
   );
+
+  useEffect(() => {
+    const currentSection = dashboardSections.find((section) => section.id === activeSection);
+
+    if (
+      currentSection?.betaFeature &&
+      !settings.betaFeatures[currentSection.betaFeature]
+    ) {
+      setActiveSection("overview");
+    }
+  }, [activeSection, settings.betaFeatures]);
 
   useEffect(() => {
     const savedCollection = loadFinancePlanCollection();
@@ -429,7 +447,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
             aria-label="Dashboard sections"
             className="hidden rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:grid lg:gap-1"
           >
-            {dashboardSections.map((section) => (
+            {visibleDashboardSections.map((section) => (
               <SectionButton
                 active={activeSection === section.id}
                 key={section.id}
@@ -442,7 +460,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
             aria-label="Dashboard sections"
             className="flex max-w-[calc(100vw-2rem)] gap-2 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 lg:hidden"
           >
-            {dashboardSections.map((section) => (
+            {visibleDashboardSections.map((section) => (
               <SectionButton
                 active={activeSection === section.id}
                 compact
@@ -466,7 +484,6 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
             >
           {activeSection === "overview" ? (
             <>
-              <GuidedSetupWizard netIncome={netIncome} onApplyPlan={applyPlan} />
               <SummaryCards netIncome={netIncome} remaining={remaining} totals={totals} />
               {isOverIncome ? (
                 <Alert variant="destructive">

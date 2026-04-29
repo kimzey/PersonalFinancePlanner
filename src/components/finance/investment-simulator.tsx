@@ -453,6 +453,7 @@ function ContributionScheduleEditor({
   onContributionStepsChange: (steps: InvestmentContributionStep[]) => void;
 }) {
   const [draftSteps, setDraftSteps] = useState(() => toDraftContributionSteps(contributionSteps));
+  const latestDraftSteps = useRef(draftSteps);
   const latestContributionSteps = useRef(contributionSteps);
   const contributionSignature = useMemo(
     () =>
@@ -467,32 +468,51 @@ function ContributionScheduleEditor({
   }, [contributionSteps]);
 
   useEffect(() => {
+    latestDraftSteps.current = draftSteps;
+  }, [draftSteps]);
+
+  useEffect(() => {
     queueMicrotask(() => {
-      setDraftSteps(toDraftContributionSteps(latestContributionSteps.current));
+      const nextDraftSteps = toDraftContributionSteps(latestContributionSteps.current);
+      latestDraftSteps.current = nextDraftSteps;
+      setDraftSteps(nextDraftSteps);
     });
   }, [contributionSignature]);
+
+  function commitDraftSteps(nextDraftSteps: DraftContributionStep[]) {
+    onContributionStepsChange(
+      toContributionSteps(nextDraftSteps, latestContributionSteps.current),
+    );
+  }
 
   function updateStep(
     stepId: string,
     patch: Partial<Pick<DraftContributionStep, "startMonth" | "monthlyContribution">>,
   ) {
-    setDraftSteps((currentSteps) => {
-      const nextDraftSteps = currentSteps.map((step) =>
-        step.id === stepId
-          ? {
-              ...step,
-              ...patch,
-            }
-          : step,
-      );
+    const nextDraftSteps = latestDraftSteps.current.map((step) =>
+      step.id === stepId
+        ? {
+            ...step,
+            ...patch,
+          }
+        : step,
+    );
 
-      onContributionStepsChange(toContributionSteps(nextDraftSteps, contributionSteps));
-      return nextDraftSteps;
-    });
+    latestDraftSteps.current = nextDraftSteps;
+    setDraftSteps(nextDraftSteps);
+    commitDraftSteps(nextDraftSteps);
   }
 
-  function applyDraftSteps() {
-    onContributionStepsChange(toContributionSteps(draftSteps, contributionSteps));
+  function cleanUpDraftSteps() {
+    const nextSteps = toContributionSteps(
+      latestDraftSteps.current,
+      latestContributionSteps.current,
+    );
+    const nextDraftSteps = toDraftContributionSteps(nextSteps);
+
+    latestDraftSteps.current = nextDraftSteps;
+    onContributionStepsChange(nextSteps);
+    setDraftSteps(nextDraftSteps);
   }
 
   function addStep() {
@@ -547,10 +567,7 @@ function ContributionScheduleEditor({
                 onChange={(event) =>
                   updateStep(step.id, { startMonth: event.target.value })
                 }
-                onBlur={applyDraftSteps}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") applyDraftSteps();
-                }}
+                onBlur={cleanUpDraftSteps}
                 type="number"
                 value={step.startMonth}
               />
@@ -566,10 +583,7 @@ function ContributionScheduleEditor({
                     monthlyContribution: event.target.value,
                   })
                 }
-                onBlur={applyDraftSteps}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") applyDraftSteps();
-                }}
+                onBlur={cleanUpDraftSteps}
                 type="number"
                 value={step.monthlyContribution}
               />
@@ -593,7 +607,7 @@ function ContributionScheduleEditor({
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add DCA step
         </Button>
-        <Button onClick={applyDraftSteps} type="button" variant="secondary">
+        <Button onClick={cleanUpDraftSteps} type="button" variant="secondary">
           Clean up schedule
         </Button>
       </div>

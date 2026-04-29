@@ -2,7 +2,23 @@
 
 import { motion } from "framer-motion";
 import type React from "react";
-import { Copy, Download, Globe2, Plus, RotateCcw, Save, Settings, Trash2, Wallet } from "lucide-react";
+import {
+  Copy,
+  Download,
+  FlaskConical,
+  Globe2,
+  Landmark,
+  ListChecks,
+  PiggyBank,
+  Plus,
+  ReceiptText,
+  RotateCcw,
+  Save,
+  Settings,
+  ShieldCheck,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,9 +31,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/finance/theme-toggle";
 import type { StoredFinancePlan } from "@/lib/storage";
-import type { FinancialPlan } from "@/types/finance";
+import type { BetaFeatureKey, FinancialPlan } from "@/types/finance";
 
 type SettingsPanelProps = {
   activePlanId: string;
@@ -33,6 +50,44 @@ type SettingsPanelProps = {
   planProfiles: StoredFinancePlan[];
   settings: FinancialPlan["settings"];
 };
+
+const betaFeatureItems: {
+  key: BetaFeatureKey;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+}[] = [
+  {
+    key: "protection",
+    label: "Protection",
+    description: "Emergency fund และ cashflow health",
+    icon: ShieldCheck,
+  },
+  {
+    key: "scenarios",
+    label: "Scenarios",
+    description: "เปรียบเทียบแผนและ what-if",
+    icon: ListChecks,
+  },
+  {
+    key: "goals",
+    label: "Goals",
+    description: "ติดตามเป้าหมายการเงิน",
+    icon: PiggyBank,
+  },
+  {
+    key: "debts",
+    label: "Debt",
+    description: "แผนปิดหนี้และดอกเบี้ย",
+    icon: Landmark,
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    description: "ติดตามค่าใช้จ่ายจริง",
+    icon: ReceiptText,
+  },
+];
 
 export function SettingsPanel({
   activePlanId,
@@ -165,6 +220,53 @@ export function SettingsPanel({
                 <option value="th-TH">th-TH</option>
               </Select>
             </div>
+          </div>
+        </SettingsTile>
+
+        <SettingsTile
+          description="เปิดใช้ฟีเจอร์ทดลองที่ยังไม่สมบูรณ์ ค่าเริ่มต้นจะปิดไว้ทั้งหมด"
+          icon={FlaskConical}
+          title="Beta"
+        >
+          <div className="grid gap-3">
+            {betaFeatureItems.map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <label
+                  className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] p-3"
+                  htmlFor={`beta-${feature.key}`}
+                  key={feature.key}
+                >
+                  <span className="flex min-w-0 items-start gap-3">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[var(--muted)] text-[var(--foreground)]">
+                      <Icon className="h-4 w-4" aria-hidden={true} />
+                    </span>
+                    <span className="grid min-w-0 gap-0.5">
+                      <span className="text-sm font-medium text-[var(--foreground)]">
+                        {feature.label}
+                      </span>
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        {feature.description}
+                      </span>
+                    </span>
+                  </span>
+                  <Switch
+                    checked={settings.betaFeatures[feature.key]}
+                    id={`beta-${feature.key}`}
+                    onChange={(event) =>
+                      onSettingsChange({
+                        ...settings,
+                        betaFeatures: {
+                          ...settings.betaFeatures,
+                          [feature.key]: event.target.checked,
+                        },
+                      })
+                    }
+                  />
+                </label>
+              );
+            })}
           </div>
         </SettingsTile>
 

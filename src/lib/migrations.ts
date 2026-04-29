@@ -1,4 +1,4 @@
-import { createDefaultPlan } from "@/lib/default-plan";
+import { createDefaultPlan, createDefaultSettings } from "@/lib/default-plan";
 import { normalizeAllocations } from "@/lib/finance";
 import type { FinancialPlan } from "@/types/finance";
 
@@ -45,10 +45,7 @@ export function migrateFinancialPlan(input: unknown): MigrationResult {
       : createDefaultPlan(netIncome).investmentScenarios,
     goals: Array.isArray(input.goals) ? input.goals.filter(isGoalLike) : [],
     debts: Array.isArray(input.debts) ? input.debts.filter(isDebtLike) : [],
-    settings: {
-      currency: "THB",
-      locale: "th-TH",
-    },
+    settings: toPlanSettings(input.settings),
   };
 
   if (plan.investmentScenarios.length === 0) {
@@ -58,6 +55,39 @@ export function migrateFinancialPlan(input: unknown): MigrationResult {
   return {
     plan,
     migrated: schemaVersion !== CURRENT_FINANCE_SCHEMA_VERSION,
+  };
+}
+
+function toPlanSettings(settings: unknown): FinancialPlan["settings"] {
+  const defaultSettings = createDefaultSettings();
+  const rawSettings = isRecord(settings) ? settings : {};
+  const rawBetaFeatures = isRecord(rawSettings.betaFeatures) ? rawSettings.betaFeatures : {};
+
+  return {
+    currency: rawSettings.currency === "THB" ? rawSettings.currency : "THB",
+    locale: rawSettings.locale === "th-TH" ? rawSettings.locale : "th-TH",
+    betaFeatures: {
+      protection:
+        typeof rawBetaFeatures.protection === "boolean"
+          ? rawBetaFeatures.protection
+          : defaultSettings.betaFeatures.protection,
+      scenarios:
+        typeof rawBetaFeatures.scenarios === "boolean"
+          ? rawBetaFeatures.scenarios
+          : defaultSettings.betaFeatures.scenarios,
+      goals:
+        typeof rawBetaFeatures.goals === "boolean"
+          ? rawBetaFeatures.goals
+          : defaultSettings.betaFeatures.goals,
+      debts:
+        typeof rawBetaFeatures.debts === "boolean"
+          ? rawBetaFeatures.debts
+          : defaultSettings.betaFeatures.debts,
+      expenses:
+        typeof rawBetaFeatures.expenses === "boolean"
+          ? rawBetaFeatures.expenses
+          : defaultSettings.betaFeatures.expenses,
+    },
   };
 }
 

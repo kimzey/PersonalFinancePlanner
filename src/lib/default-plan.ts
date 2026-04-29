@@ -3,6 +3,24 @@ import { amountToPercent } from "@/lib/finance";
 
 export const DEFAULT_NET_INCOME = 50_000;
 
+export const DEFAULT_BETA_FEATURES: FinancialPlan["settings"]["betaFeatures"] = {
+  protection: false,
+  scenarios: false,
+  goals: false,
+  debts: false,
+  expenses: false,
+};
+
+export function createDefaultSettings(): FinancialPlan["settings"] {
+  return {
+    currency: "THB",
+    locale: "th-TH",
+    betaFeatures: {
+      ...DEFAULT_BETA_FEATURES,
+    },
+  };
+}
+
 const colors = {
   housing: "#2563eb",
   investing: "#16a34a",
@@ -89,9 +107,6 @@ export function createDefaultPlan(netIncome = DEFAULT_NET_INCOME): FinancialPlan
     ],
     goals: [],
     debts: [],
-    settings: {
-      currency: "THB",
-      locale: "th-TH",
-    },
+    settings: createDefaultSettings(),
   };
 }

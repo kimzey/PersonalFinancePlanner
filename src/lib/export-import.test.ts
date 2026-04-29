@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDefaultPlan } from "@/lib/default-plan";
+import { DEFAULT_BETA_FEATURES } from "@/lib/default-plan";
 import {
   createExportData,
   getExportFileName,
@@ -122,7 +123,11 @@ describe("export/import", () => {
     const plan = toFinancialPlan(result.data);
     expect(plan.profile.netIncome).toBe(38425);
     expect(plan.allocations[0].id).toBe("family-support");
-    expect(plan.settings).toEqual({ currency: "THB", locale: "th-TH" });
+    expect(plan.settings).toEqual({
+      currency: "THB",
+      locale: "th-TH",
+      betaFeatures: DEFAULT_BETA_FEATURES,
+    });
   });
 
   it("creates readable export file names", () => {

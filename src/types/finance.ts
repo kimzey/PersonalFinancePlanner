@@ -55,6 +55,10 @@ export type DebtItem = {
   minimumPayment: number;
 };
 
+export type BetaFeatureKey = "protection" | "scenarios" | "goals" | "debts" | "expenses";
+
+export type BetaFeatureSettings = Record<BetaFeatureKey, boolean>;
+
 export type FinancialPlan = {
   schemaVersion: number;
   profile: {
@@ -67,6 +71,7 @@ export type FinancialPlan = {
   settings: {
     currency: "THB";
     locale: "th-TH";
+    betaFeatures: BetaFeatureSettings;
   };
 };
 
