@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   BarChart3,
   Calculator,
+  ChevronDown,
   Copy,
   Download,
   Landmark,
@@ -140,6 +141,7 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [settings, setSettings] = useState(initialPlan.settings);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [planProfileOpen, setPlanProfileOpen] = useState(false);
   const [planProfiles, setPlanProfiles] = useState<StoredFinancePlan[]>([
     initialPlanProfile,
   ]);
@@ -427,7 +429,10 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
         onDuplicatePlan={duplicateCurrentPlan}
         onRenamePlan={handleRenamePlan}
         onSelectPlan={handleSelectPlan}
+        onOpenChange={setPlanProfileOpen}
+        open={planProfileOpen}
         plans={planProfiles}
+        reduceMotion={Boolean(shouldReduceMotion)}
       />
 
       <ExportImportDialog
@@ -647,68 +652,115 @@ function PlanProfileBar({
   onCreatePlan,
   onDeletePlan,
   onDuplicatePlan,
+  onOpenChange,
   onRenamePlan,
   onSelectPlan,
+  open,
   plans,
+  reduceMotion,
 }: {
   activePlanId: string;
   canDelete: boolean;
   onCreatePlan: () => void;
   onDeletePlan: () => void;
   onDuplicatePlan: () => void;
+  onOpenChange: (open: boolean) => void;
   onRenamePlan: (name: string) => void;
   onSelectPlan: (planId: string) => void;
+  open: boolean;
   plans: StoredFinancePlan[];
+  reduceMotion: boolean;
 }) {
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
 
   return (
-    <section className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm md:grid-cols-[minmax(12rem,18rem)_minmax(12rem,1fr)_auto] md:items-end">
-      <div className="grid gap-2">
-        <Label htmlFor="active-plan">Plan / Profile</Label>
-        <Select
-          id="active-plan"
-          onChange={(event) => onSelectPlan(event.target.value)}
-          value={activePlanId}
-        >
-          {plans.map((plan) => (
-            <option key={plan.id} value={plan.id}>
-              {plan.name || "Untitled plan"}
-            </option>
-          ))}
-        </Select>
-      </div>
+    <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm">
+      <button
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--muted)]"
+        onClick={() => onOpenChange(!open)}
+        type="button"
+      >
+        <span className="grid min-w-0 gap-1">
+          <span className="text-xs font-medium uppercase text-[var(--muted-foreground)]">
+            Plan / Profile
+          </span>
+          <span className="truncate text-sm font-semibold text-[var(--foreground)]">
+            {activePlan?.name || "Untitled plan"}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="hidden text-xs text-[var(--muted-foreground)] sm:inline">
+            {plans.length} plan{plans.length === 1 ? "" : "s"}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-[var(--muted-foreground)] transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
+        </span>
+      </button>
 
-      <div className="grid gap-2">
-        <Label htmlFor="plan-name">Plan name</Label>
-        <Input
-          id="plan-name"
-          onChange={(event) => onRenamePlan(event.target.value)}
-          placeholder="ตั้งชื่อ plan"
-          value={activePlan?.name ?? ""}
-        />
-      </div>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            animate={{ height: "auto", opacity: 1 }}
+            className="border-t border-[var(--border)]"
+            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            initial={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <div className="grid gap-3 p-4 md:grid-cols-[minmax(12rem,18rem)_minmax(12rem,1fr)_auto] md:items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="active-plan">Active plan</Label>
+                <Select
+                  id="active-plan"
+                  onChange={(event) => onSelectPlan(event.target.value)}
+                  value={activePlanId}
+                >
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name || "Untitled plan"}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={onCreatePlan} size="sm" type="button" variant="outline">
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          New
-        </Button>
-        <Button onClick={onDuplicatePlan} size="sm" type="button" variant="outline">
-          <Copy className="h-4 w-4" aria-hidden="true" />
-          Duplicate
-        </Button>
-        <Button
-          disabled={!canDelete}
-          onClick={onDeletePlan}
-          size="sm"
-          type="button"
-          variant="secondary"
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-          Delete
-        </Button>
-      </div>
+              <div className="grid gap-2">
+                <Label htmlFor="plan-name">Plan name</Label>
+                <Input
+                  id="plan-name"
+                  onChange={(event) => onRenamePlan(event.target.value)}
+                  placeholder="ตั้งชื่อ plan"
+                  value={activePlan?.name ?? ""}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={onCreatePlan} size="sm" type="button" variant="outline">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  New
+                </Button>
+                <Button onClick={onDuplicatePlan} size="sm" type="button" variant="outline">
+                  <Copy className="h-4 w-4" aria-hidden="true" />
+                  Duplicate
+                </Button>
+                <Button
+                  disabled={!canDelete}
+                  onClick={onDeletePlan}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
