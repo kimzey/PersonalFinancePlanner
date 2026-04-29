@@ -53,11 +53,22 @@ import {
   saveFinancePlanCollection,
   type StoredFinancePlan,
 } from "@/lib/storage";
-import type { AllocationCategory, FinancialPlan } from "@/types/finance";
+import type {
+  AllocationCategory,
+  DebtItem,
+  FinancialGoal,
+  FinancialPlan,
+} from "@/types/finance";
 import type { ScenarioPlan } from "@/lib/scenarios";
 
 type FinanceDashboardProps = {
   initialPlan: FinancialPlan;
+};
+
+type QuickAction = {
+  label: string;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  onClick: () => void;
 };
 
 type DashboardSection =
@@ -142,6 +153,8 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [planProfileOpen, setPlanProfileOpen] = useState(false);
+  const [expenseTrackerRevision, setExpenseTrackerRevision] = useState(0);
+  const [taxCalculatorRevision, setTaxCalculatorRevision] = useState(0);
   const [planProfiles, setPlanProfiles] = useState<StoredFinancePlan[]>([
     initialPlanProfile,
   ]);
@@ -391,6 +404,101 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
     setActionMenuOpen(false);
   }
 
+  function addGoal() {
+    const nextGoal: FinancialGoal = {
+      id: createPlanId("goal"),
+      name: `Goal ${goals.length + 1}`,
+      targetAmount: 100_000,
+      currentAmount: 0,
+      monthlySaving: 5_000,
+      targetDate: getDefaultTargetDate(),
+    };
+
+    setGoals((currentGoals) => [...currentGoals, nextGoal]);
+  }
+
+  function addDebt() {
+    const nextDebt: DebtItem = {
+      id: createPlanId("debt"),
+      name: `Debt ${debts.length + 1}`,
+      balance: 50_000,
+      annualInterestPercent: 12,
+      minimumPayment: 2_000,
+    };
+
+    setDebts((currentDebts) => [...currentDebts, nextDebt]);
+  }
+
+  const quickActions = useMemo<QuickAction[]>(() => {
+    switch (activeSection) {
+      case "overview":
+        return [
+          { label: "New plan", icon: Plus, onClick: createNewPlan },
+          {
+            label: "Export / Import",
+            icon: Download,
+            onClick: () => setImportDialogOpen(true),
+          },
+        ];
+      case "budget":
+        return [{ label: "Reset allocation", icon: RotateCcw, onClick: resetAllocations }];
+      case "investing":
+        return [{ label: "Reset simulator", icon: RotateCcw, onClick: resetSimulator }];
+      case "scenarios":
+        return importedScenarios.length > 0
+          ? [
+              {
+                label: "Clear imported scenarios",
+                icon: Trash2,
+                onClick: () => setImportedScenarios([]),
+              },
+            ]
+          : [];
+      case "goals":
+        return [{ label: "Add goal", icon: Target, onClick: addGoal }];
+      case "debts":
+        return [{ label: "Add debt", icon: Landmark, onClick: addDebt }];
+      case "expenses":
+        return [
+          {
+            label: "Reset actual expenses",
+            icon: RotateCcw,
+            onClick: () => setExpenseTrackerRevision((revision) => revision + 1),
+          },
+        ];
+      case "tax":
+        return [
+          {
+            label: "Reset tax calculator",
+            icon: RotateCcw,
+            onClick: () => setTaxCalculatorRevision((revision) => revision + 1),
+          },
+        ];
+      case "settings":
+        return [
+          { label: "New plan", icon: Plus, onClick: createNewPlan },
+          { label: "Duplicate plan", icon: Copy, onClick: duplicateCurrentPlan },
+          {
+            label: "Export / Import",
+            icon: Download,
+            onClick: () => setImportDialogOpen(true),
+          },
+          { label: "Reset all", icon: RotateCcw, onClick: resetDefaultPlan },
+        ];
+      case "protection":
+      default:
+        return [];
+    }
+  }, [
+    activeSection,
+    debts.length,
+    goals.length,
+    importedScenarios.length,
+    currentPlan,
+    planProfiles.length,
+    activePlanId,
+  ]);
+
   return (
     <div className="mx-auto flex max-w-7xl min-w-0 flex-col gap-6 pb-24 md:pb-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -454,14 +562,12 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
       ) : null}
 
       <FloatingActionMenu
-        onCreateBudget={() => runQuickAction(() => setActiveSection("budget"))}
-        onCreatePlan={() => runQuickAction(createNewPlan)}
-        onExportImport={() => runQuickAction(() => setImportDialogOpen(true))}
-        onOpenInvesting={() => runQuickAction(() => setActiveSection("investing"))}
-        onOpenSettings={() => runQuickAction(() => setActiveSection("settings"))}
+        actions={quickActions}
+        onAction={runQuickAction}
         open={actionMenuOpen}
         onOpenChange={setActionMenuOpen}
         reduceMotion={Boolean(shouldReduceMotion)}
+        sectionLabel={getSectionLabel(activeSection)}
       />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -592,11 +698,11 @@ export function FinanceDashboard({ initialPlan }: FinanceDashboardProps) {
           ) : null}
 
           {activeSection === "expenses" ? (
-            <ExpenseTracker allocations={normalizedAllocations} />
+            <ExpenseTracker key={expenseTrackerRevision} allocations={normalizedAllocations} />
           ) : null}
 
           {activeSection === "tax" ? (
-            <TaxCalculator initialMonthlyIncome={netIncome} />
+            <TaxCalculator key={taxCalculatorRevision} initialMonthlyIncome={netIncome} />
           ) : null}
 
           {activeSection === "settings" ? (
@@ -766,51 +872,20 @@ function PlanProfileBar({
 }
 
 function FloatingActionMenu({
-  onCreateBudget,
-  onCreatePlan,
-  onExportImport,
+  actions,
+  onAction,
   onOpenChange,
-  onOpenInvesting,
-  onOpenSettings,
   open,
   reduceMotion,
+  sectionLabel,
 }: {
-  onCreateBudget: () => void;
-  onCreatePlan: () => void;
-  onExportImport: () => void;
+  actions: QuickAction[];
+  onAction: (action: () => void) => void;
   onOpenChange: (open: boolean) => void;
-  onOpenInvesting: () => void;
-  onOpenSettings: () => void;
   open: boolean;
   reduceMotion: boolean;
+  sectionLabel: string;
 }) {
-  const actions = [
-    {
-      label: "Create budget",
-      icon: SlidersHorizontal,
-      onClick: onCreateBudget,
-    },
-    {
-      label: "Open investing",
-      icon: LineChart,
-      onClick: onOpenInvesting,
-    },
-    {
-      label: "New plan",
-      icon: Plus,
-      onClick: onCreatePlan,
-    },
-    {
-      label: "Export / Import",
-      icon: Download,
-      onClick: onExportImport,
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      onClick: onOpenSettings,
-    },
-  ];
   const MainIcon = open ? X : Plus;
 
   return (
@@ -824,21 +899,30 @@ function FloatingActionMenu({
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
           >
-            {actions.map((action) => {
-              const Icon = action.icon;
+            <div className="px-3 py-1 text-xs font-medium uppercase text-[var(--muted-foreground)]">
+              {sectionLabel}
+            </div>
+            {actions.length > 0 ? (
+              actions.map((action) => {
+                const Icon = action.icon;
 
-              return (
-                <button
-                  className="inline-flex min-w-48 items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
-                  key={action.label}
-                  onClick={action.onClick}
-                  type="button"
-                >
-                  <Icon className="h-4 w-4 text-[var(--muted-foreground)]" aria-hidden />
-                  {action.label}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    className="inline-flex min-w-52 items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)]"
+                    key={action.label}
+                    onClick={() => onAction(action.onClick)}
+                    type="button"
+                  >
+                    <Icon className="h-4 w-4 text-[var(--muted-foreground)]" aria-hidden />
+                    {action.label}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="min-w-52 rounded-md px-3 py-2 text-sm text-[var(--muted-foreground)]">
+                No quick actions for this view
+              </div>
+            )}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -854,6 +938,10 @@ function FloatingActionMenu({
       </button>
     </div>
   );
+}
+
+function getSectionLabel(section: DashboardSection) {
+  return dashboardSections.find((item) => item.id === section)?.label ?? "Current view";
 }
 
 function SectionButton({
@@ -904,4 +992,10 @@ function createPlanId(prefix: string) {
   }
 
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getDefaultTargetDate() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  return date.toISOString().slice(0, 10);
 }
